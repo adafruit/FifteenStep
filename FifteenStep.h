@@ -18,13 +18,18 @@ class FifteenStep
 {
   public:
     FifteenStep();
-    void update(void);
-    void setTempo(int tempo);
-    void setSteps(int steps);
+    void            setTempo(int tempo);
+    void            setSteps(int steps);
+    void            run();
+    void            trigger();
   private:
-    int   _tempo;
-    int   _steps;
-    Timer _timer;
+    int             _tempo;
+    int             _steps;
+    unsigned long   _sixteenth;
+    Timer           _timer;
+    static void     _tick(void *s);
+    void            _noteOn();
+    void            _noteOff();
 };
 
 #endif
