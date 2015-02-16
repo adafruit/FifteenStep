@@ -14,8 +14,18 @@
 
 FifteenStep::FifteenStep()
 {
-  _tempo = 120;
-  _steps = 16;
+  setTempo(120);
+  setSteps(16);
+}
+
+void FifteenStep::setTempo(int tempo)
+{
+  _tempo = tempo;
+}
+
+void FifteenStep::setSteps(int steps)
+{
+  _steps = steps;
 }
 
 void FifteenStep::update(void)

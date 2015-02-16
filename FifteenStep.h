@@ -19,10 +19,12 @@ class FifteenStep
   public:
     FifteenStep();
     void update(void);
+    void setTempo(int tempo);
+    void setSteps(int steps);
   private:
     int   _tempo;
     int   _steps;
-    Timer _timer
+    Timer _timer;
 };
 
 #endif
