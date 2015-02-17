@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 //
 // FifteenStep.cpp
-// A step sequencer library for Arduino.
+// A generic MIDI sequencer library for Arduino.
 //
 // Author: Todd Treece <todd@uniontownlabs.org>
 // Copyright: (c) 2015 Adafruit Industries
@@ -9,20 +9,22 @@
 //
 // ---------------------------------------------------------------------------
 #include "Arduino.h"
-#include "Timer.h"
 #include "FifteenStep.h"
 
 FifteenStep::FifteenStep()
 {
+
+  _next_beat = 0;
+  _position = 0;
+
   setTempo(120);
   setSteps(16);
-  _timer.after(_sixteenth, _tick, this);
 }
 
 void FifteenStep::setTempo(int tempo)
 {
   _tempo = tempo;
-  _sixteenth = 60000 / _tempo / 4;
+  _sixteenth = 60000L / _tempo / 4;
 }
 
 void FifteenStep::setSteps(int steps)
@@ -32,36 +34,64 @@ void FifteenStep::setSteps(int steps)
 
 void FifteenStep::run()
 {
-  _timer.update();
+
+  // what's the time?
+  unsigned long now = millis(); // it's time to get ill.
+
+  // don't step yet
+  if(now < _next_beat)
+    return;
+
+  // advance and send notes
+  _step();
+
+  // add the length of a sixteenth note to now
+  // so we know when to trigger the next step
+  _next_beat = now + _sixteenth;
+
 }
 
-void FifteenStep::_tick(void *s)
+void FifteenStep::registerOutput(MIDIcallback cb)
 {
-  FifteenStep *fs = (FifteenStep *)s;
-  fs->trigger();
+
+  // set the callback to use with _noteOn & _noteOff
+  _midi_cb = cb;
+
 }
 
-void FifteenStep::trigger()
+void FifteenStep::_step()
 {
-  _timer.after(_sixteenth, _tick, this);
+
+  // start over if we've reached the end
+  if(_position >= _steps)
+    _position = 0;
+
   _noteOff();
   _noteOn();
+
+  // increment the position
+  _position++;
+
 }
 
 void FifteenStep::_noteOn()
 {
-  // TODO callbacks
-  // don't implement MIDI directly
-  MIDIEvent noteOn = {0x09, 0x90, 0x3C, 0x40};
-  MIDIUSB.write(noteOn);
-  MIDIUSB.flush();
+
+  // bail if the callback isn't set
+  if(! _midi_cb)
+    return;
+
+  _midi_cb(0x9, 0x3C, 0x40);
+
 }
 
 void FifteenStep::_noteOff()
 {
-  // TODO callbacks
-  // don't implement MIDI directly
-  MIDIEvent noteOff = {0x09, 0x80, 0x3C, 0x40};
-  MIDIUSB.write(noteOff);
-  MIDIUSB.flush();
+
+  // bail if the callback isn't set
+  if(! _midi_cb)
+    return;
+
+  _midi_cb(0x8, 0x3C, 0x40);
+
 }

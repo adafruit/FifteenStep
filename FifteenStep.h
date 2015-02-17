@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 //
 // FifteenStep.h
-// A step sequencer library for Arduino.
+// A generic MIDI sequencer library for Arduino.
 //
 // Author: Todd Treece <todd@uniontownlabs.org>
 // Copyright: (c) 2015 Adafruit Industries
@@ -12,7 +12,8 @@
 #define _FifteenStep_h
 
 #include "Arduino.h"
-#include "Timer.h"
+
+typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
 
 class FifteenStep
 {
@@ -21,13 +22,15 @@ class FifteenStep
     void            setTempo(int tempo);
     void            setSteps(int steps);
     void            run();
-    void            trigger();
+    void            registerOutput(MIDIcallback cb);
   private:
+    MIDIcallback    _midi_cb;
     int             _tempo;
     int             _steps;
+    int             _position;
     unsigned long   _sixteenth;
-    Timer           _timer;
-    static void     _tick(void *s);
+    unsigned long   _next_beat;
+    void            _step();
     void            _noteOn();
     void            _noteOff();
 };
