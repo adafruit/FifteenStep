@@ -14,6 +14,7 @@
 #include "Arduino.h"
 
 typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
+typedef void (*StepCallback) (int current, int last);
 
 class FifteenStep
 {
@@ -21,10 +22,12 @@ class FifteenStep
     FifteenStep();
     void            setTempo(int tempo);
     void            setSteps(int steps);
-    void            registerOutput(MIDIcallback cb);
+    void            midiHandler(MIDIcallback cb);
+    void            stepHandler(StepCallback cb);
     void            run();
   private:
     MIDIcallback    _midi_cb;
+    StepCallback    _step_cb;
     int             _tempo;
     int             _steps;
     int             _position;

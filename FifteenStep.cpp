@@ -23,6 +23,7 @@ FifteenStep::FifteenStep()
 
 void FifteenStep::setTempo(int tempo)
 {
+
   _tempo = tempo;
   _sixteenth = 60000L / _tempo / 4;
 }
@@ -51,7 +52,7 @@ void FifteenStep::run()
 
 }
 
-void FifteenStep::registerOutput(MIDIcallback cb)
+void FifteenStep::midiHandler(MIDIcallback cb)
 {
 
   // set the callback to use with _noteOn & _noteOff
@@ -59,9 +60,21 @@ void FifteenStep::registerOutput(MIDIcallback cb)
 
 }
 
+void FifteenStep::stepHandler(StepCallback cb)
+{
+
+  // set the callback to call on position change
+  _step_cb = cb;
+
+}
+
+
 void FifteenStep::_step()
 {
 
+  int last = _position;
+
+  // stop any previously played notes
   _noteOff();
 
   // increment the position
@@ -71,6 +84,12 @@ void FifteenStep::_step()
   if(_position >= _steps)
     _position = 0;
 
+  // tell the callback where we are
+  // if it has been set by the sketch
+  if(_step_cb)
+    _step_cb(_position, last);
+
+  // trigger new notes
   _noteOn();
 
 }
