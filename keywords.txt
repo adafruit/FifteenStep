@@ -1,0 +1,8 @@
+// class
+FifteenStep	KEYWORD1
+
+// functions
+setTempo	KEYWORD2
+setSteps	KEYWORD2
+registerOutput	KEYWORD2
+run	KEYWORD2
