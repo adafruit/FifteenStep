@@ -21,8 +21,8 @@ class FifteenStep
     FifteenStep();
     void            setTempo(int tempo);
     void            setSteps(int steps);
-    void            run();
     void            registerOutput(MIDIcallback cb);
+    void            run();
   private:
     MIDIcallback    _midi_cb;
     int             _tempo;

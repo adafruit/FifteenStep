@@ -62,15 +62,16 @@ void FifteenStep::registerOutput(MIDIcallback cb)
 void FifteenStep::_step()
 {
 
+  _noteOff();
+
+  // increment the position
+  _position++;
+
   // start over if we've reached the end
   if(_position >= _steps)
     _position = 0;
 
-  _noteOff();
   _noteOn();
-
-  // increment the position
-  _position++;
 
 }
 
@@ -81,7 +82,7 @@ void FifteenStep::_noteOn()
   if(! _midi_cb)
     return;
 
-  _midi_cb(0x9, 0x3C, 0x40);
+  _midi_cb(0x9, 50 + _position, 0x40);
 
 }
 
@@ -92,6 +93,6 @@ void FifteenStep::_noteOff()
   if(! _midi_cb)
     return;
 
-  _midi_cb(0x8, 0x3C, 0x40);
+  _midi_cb(0x8, 50 + _position, 0x40);
 
 }
