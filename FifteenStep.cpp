@@ -30,7 +30,29 @@ void FifteenStep::setTempo(int tempo)
 
 void FifteenStep::setSteps(int steps)
 {
+
+  // clear memory if notes array is set
+  if(_notes) {
+
+    // clear second dimension
+    for(int i=0; i < _steps; i++) {
+
+      if(_notes[i])
+        delete [] _notes[i];
+
+    }
+
+    // clear main array
+    delete [] _notes;
+
+  }
+
+  // set new value
   _steps = steps;
+
+  // initialize a new note array
+  _notes = new MidiNote *[_steps];
+
 }
 
 void FifteenStep::run()
@@ -67,7 +89,6 @@ void FifteenStep::stepHandler(StepCallback cb)
   _step_cb = cb;
 
 }
-
 
 void FifteenStep::_step()
 {
