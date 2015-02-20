@@ -19,53 +19,18 @@ FifteenStep::FifteenStep()
 
 void FifteenStep::begin()
 {
-  setTempo(FS_DEFAULT_TEMPO);
-  setSteps(FS_DEFAULT_STEPS);
+  begin(FS_DEFAULT_TEMPO, FS_DEFAULT_STEPS);
 }
 
 void FifteenStep::begin(int tempo)
 {
-  setTempo(tempo);
-  setSteps(FS_DEFAULT_STEPS);
+  begin(tempo, FS_DEFAULT_STEPS);
 }
 
 void FifteenStep::begin(int tempo, int steps)
 {
   setTempo(tempo);
   setSteps(steps);
-}
-
-void FifteenStep::setTempo(int tempo)
-{
-  _tempo = tempo;
-  _sixteenth = 60000L / _tempo / 4;
-}
-
-void FifteenStep::setSteps(int steps)
-{
-
-  // clear memory if notes array is set
-  if(_sequence) {
-
-    // clear second dimension
-    for(int i=0; i < _steps; i++) {
-
-      if(_sequence[i])
-        delete [] _sequence[i];
-
-    }
-
-    // clear main array
-    delete [] _sequence;
-
-  }
-
-  // set new value
-  _steps = steps;
-
-  // initialize a new seqence array
-  _sequence = new FifteenStepNote *[_steps];
-
 }
 
 void FifteenStep::run()
@@ -87,6 +52,52 @@ void FifteenStep::run()
 
 }
 
+void FifteenStep::setTempo(int tempo)
+{
+  // tempo in beats per minute
+  _tempo = tempo;
+  // 60 seconds / bpm / 4 sixteeth notes per beat
+  // gives you the value of a sixteenth note
+  _sixteenth = 60000L / _tempo / 4;
+}
+
+void FifteenStep::setSteps(int steps)
+{
+
+  int i = 0;
+
+  // free memory if sequence array is set
+  if(_sequence)
+  {
+
+    // clear positions
+    for(; i < _steps; ++i) {
+
+      if(_sequence[i])
+        delete [] _sequence[i];
+
+    }
+
+    // free main sequence array
+    delete [] _sequence;
+
+  }
+
+  // set new step value
+  _steps = steps;
+
+  // initialize the main dimension of new sequence array
+  _sequence = new FifteenStepNote*[_steps];
+
+  // guess how many notes to track for each
+  // position by using step count as default
+  for(i=0; i < _steps; ++i)
+  {
+    _sequence[i] = new FifteenStepNote[_steps];
+  }
+
+}
+
 void FifteenStep::setMidiHandler(MIDIcallback cb)
 {
   // the passed callback will be used
@@ -98,6 +109,77 @@ void FifteenStep::setStepHandler(StepCallback cb)
 {
   // set the callback to call on position change
   _step_cb = cb;
+}
+
+void FifteenStep::set(bool on, byte pitch, byte velocity) {
+
+  // bail if the sequence is broken
+  if(! _sequence || ! _sequence[_position])
+    return;
+
+  int i = 0;
+
+  for(; i < _positionLength(); ++i)
+  {
+
+    // if note is already set at position
+    // just modify that instance
+    if(pitch == _sequence[_position][i].pitch)
+    {
+      _sequence[_position][i].set(on, pitch, velocity);
+      return;
+    }
+
+    // if note doesn't exist at position
+    // set the first available free spot
+    if(_sequence[_position][i].available) {
+      _sequence[_position][i].set(on, pitch, velocity);
+      return;
+    }
+
+  }
+
+  // if we reach here, we're out of free spots
+  // at this location and need to increase the size
+  // of the array of notes
+  _positionResize();
+
+  // increment i by 1 so we can use the new array slots
+  i++;
+
+  // bail. there should be a new free spot here
+  if(! _sequence[_position][i].available)
+    return;
+
+  // all is good. set the note
+  _sequence[_position][i].set(on, pitch, velocity);
+
+}
+
+void FifteenStep::_positionResize()
+{
+
+  // double size of position to avoid
+  // doing this a bunch of times
+  int length = _positionLength();
+  int new_length = length * 2;
+  FifteenStepNote *tmp = new FifteenStepNote[new_length];
+
+  // copy old array to new array
+  memcpy(tmp, _sequence[_position], length * sizeof(FifteenStepNote));
+
+  // delete old array
+  delete [] _sequence[_position];
+
+  // set position to new array
+  _sequence[_position] = tmp;
+
+}
+
+int FifteenStep::_positionLength()
+{
+  // TODO: this doesn't work with pointers
+  return sizeof(_sequence[_position]) / sizeof(FifteenStepNote);
 }
 
 void FifteenStep::_step()
@@ -133,12 +215,14 @@ void FifteenStep::_triggerNotes()
   if(! _sequence || ! _sequence[_position])
     return;
 
-  // get the number of notes stored at this position
-  int length = sizeof(_sequence[_position]) / sizeof(FifteenStepNote);
-
   // loop through the position and trigger notes
-  for(int i=0; i < length; i++)
+  for(int i=0; i < _positionLength(); ++i)
   {
+
+    // we've reached the end of set notes
+    // at this position, so we can bail
+    if(_sequence[_position][i].available)
+      break;
 
     _midi_cb(
       _sequence[_position][i].on ? 0x9 : 0x8,
@@ -149,3 +233,4 @@ void FifteenStep::_triggerNotes()
   }
 
 }
+

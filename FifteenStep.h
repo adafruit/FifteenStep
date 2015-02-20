@@ -12,20 +12,13 @@
 #define _FifteenStep_h
 
 #include "Arduino.h"
+#include "FifteenStepNote.h"
 
 #define FS_DEFAULT_TEMPO 120
 #define FS_DEFAULT_STEPS 16
 
 typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
 typedef void (*StepCallback) (int current, int last);
-
-class FifteenStepNote
-{
-  public:
-    byte  on;
-    byte  pitch;
-    byte  velocity;
-};
 
 class FifteenStep
 {
@@ -39,6 +32,7 @@ class FifteenStep
     void  setSteps(int steps);
     void  setMidiHandler(MIDIcallback cb);
     void  setStepHandler(StepCallback cb);
+    void  set(bool on, byte pitch, byte velocity);
   private:
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
@@ -48,6 +42,8 @@ class FifteenStep
     int               _position;
     unsigned long     _sixteenth;
     unsigned long     _next_beat;
+    int               _positionLength();
+    void              _positionResize();
     void              _step();
     void              _triggerNotes();
 };

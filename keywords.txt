@@ -9,6 +9,7 @@ FifteenStepNote		KEYWORD1
 #######################################
 begin			KEYWORD2
 run			KEYWORD2
+set			KEYWORD2
 setTempo		KEYWORD2
 setSteps		KEYWORD2
 setMidiHandler		KEYWORD2
