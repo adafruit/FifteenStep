@@ -1,8 +1,9 @@
 #include "FifteenStep.h"
 #include "Adafruit_NeoPixel.h"
 
-#define PIN            6
-#define STEPS          7
+#define PIN      6
+#define STEPS    7
+#define TEMPO    120
 
 FifteenStep seq = FifteenStep();
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(STEPS, PIN, NEO_GRB + NEO_KHZ800);
@@ -12,10 +13,9 @@ void setup() {
   pixels.begin();
   pixels.setBrightness(10);
 
-  seq.setTempo(50);
-  seq.setSteps(STEPS);
-  seq.midiHandler(midi);
-  seq.stepHandler(step);
+  seq.begin(TEMPO, STEPS);
+  seq.setMidiHandler(midi);
+  seq.setStepHandler(step);
 
 }
 

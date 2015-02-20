@@ -1,15 +1,22 @@
 #######################################
-# Syntax Coloring Map For FifteenStep
+# Classes
 #######################################
-# Class
-#######################################
-FifteenStep	KEYWORD1
+FifteenStep		KEYWORD1
+FifteenStepNote		KEYWORD1
 
 #######################################
 # Functions
 #######################################
-setTempo	KEYWORD2
-setSteps	KEYWORD2
-midiHandler	KEYWORD2
-stepHandler	KEYWORD2
-run		KEYWORD2
+begin			KEYWORD2
+run			KEYWORD2
+setTempo		KEYWORD2
+setSteps		KEYWORD2
+setMidiHandler		KEYWORD2
+setStepHandler		KEYWORD2
+
+#######################################
+# Constants
+#######################################
+
+FS_DEFAULT_TEMPO	LITERAL1
+FS_DEFAULT_STEPS	LITERAL1

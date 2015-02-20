@@ -13,17 +13,30 @@
 
 FifteenStep::FifteenStep()
 {
-
   _next_beat = 0;
   _position = 0;
+}
 
-  setTempo(120);
-  setSteps(16);
+void FifteenStep::begin()
+{
+  setTempo(FS_DEFAULT_TEMPO);
+  setSteps(FS_DEFAULT_STEPS);
+}
+
+void FifteenStep::begin(int tempo)
+{
+  setTempo(tempo);
+  setSteps(FS_DEFAULT_STEPS);
+}
+
+void FifteenStep::begin(int tempo, int steps)
+{
+  setTempo(tempo);
+  setSteps(steps);
 }
 
 void FifteenStep::setTempo(int tempo)
 {
-
   _tempo = tempo;
   _sixteenth = 60000L / _tempo / 4;
 }
@@ -32,26 +45,26 @@ void FifteenStep::setSteps(int steps)
 {
 
   // clear memory if notes array is set
-  if(_notes) {
+  if(_sequence) {
 
     // clear second dimension
     for(int i=0; i < _steps; i++) {
 
-      if(_notes[i])
-        delete [] _notes[i];
+      if(_sequence[i])
+        delete [] _sequence[i];
 
     }
 
     // clear main array
-    delete [] _notes;
+    delete [] _sequence;
 
   }
 
   // set new value
   _steps = steps;
 
-  // initialize a new note array
-  _notes = new MidiNote *[_steps];
+  // initialize a new seqence array
+  _sequence = new FifteenStepNote *[_steps];
 
 }
 
@@ -59,7 +72,7 @@ void FifteenStep::run()
 {
 
   // what's the time?
-  unsigned long now = millis(); // it's time to get ill.
+  unsigned long now = millis();
 
   // don't step yet
   if(now < _next_beat)
@@ -74,29 +87,23 @@ void FifteenStep::run()
 
 }
 
-void FifteenStep::midiHandler(MIDIcallback cb)
+void FifteenStep::setMidiHandler(MIDIcallback cb)
 {
-
-  // set the callback to use with _noteOn & _noteOff
+  // the passed callback will be used
+  // to send MIDI commands to the user's device
   _midi_cb = cb;
-
 }
 
-void FifteenStep::stepHandler(StepCallback cb)
+void FifteenStep::setStepHandler(StepCallback cb)
 {
-
   // set the callback to call on position change
   _step_cb = cb;
-
 }
 
 void FifteenStep::_step()
 {
 
   int last = _position;
-
-  // stop any previously played notes
-  _noteOff();
 
   // increment the position
   _position++;
@@ -110,29 +117,35 @@ void FifteenStep::_step()
   if(_step_cb)
     _step_cb(_position, last);
 
-  // trigger new notes
-  _noteOn();
+  // trigger next set of notes
+  _triggerNotes();
 
 }
 
-void FifteenStep::_noteOn()
+void FifteenStep::_triggerNotes()
 {
 
-  // bail if the callback isn't set
+  // bail if the midi callback isn't set
   if(! _midi_cb)
     return;
 
-  _midi_cb(0x9, 50 + _position, 0x40);
-
-}
-
-void FifteenStep::_noteOff()
-{
-
-  // bail if the callback isn't set
-  if(! _midi_cb)
+  // bail if no notes have been set for this position
+  if(! _sequence || ! _sequence[_position])
     return;
 
-  _midi_cb(0x8, 50 + _position, 0x40);
+  // get the number of notes stored at this position
+  int length = sizeof(_sequence[_position]) / sizeof(FifteenStepNote);
+
+  // loop through the position and trigger notes
+  for(int i=0; i < length; i++)
+  {
+
+    _midi_cb(
+      _sequence[_position][i].on ? 0x9 : 0x8,
+      _sequence[_position][i].pitch,
+      _sequence[_position][i].velocity
+    );
+
+  }
 
 }
