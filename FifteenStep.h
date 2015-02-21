@@ -30,9 +30,11 @@ class FifteenStep
     void  run();
     void  setTempo(int tempo);
     void  setSteps(int steps);
+    void  increaseShuffle();
+    void  decreaseShuffle();
     void  setMidiHandler(MIDIcallback cb);
     void  setStepHandler(StepCallback cb);
-    void  set(bool on, byte pitch, byte velocity);
+    void  setNote(bool on, byte pitch, byte velocity);
   private:
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
@@ -41,9 +43,9 @@ class FifteenStep
     int               _steps;
     int               _position;
     unsigned long     _sixteenth;
+    unsigned long     _shuffle;
     unsigned long     _next_beat;
-    int               _positionLength();
-    void              _positionResize();
+    unsigned long     _shuffleDivision();
     void              _step();
     void              _triggerNotes();
 };

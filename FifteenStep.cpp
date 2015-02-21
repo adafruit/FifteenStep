@@ -15,6 +15,7 @@ FifteenStep::FifteenStep()
 {
   _next_beat = 0;
   _position = 0;
+  _shuffle = 0;
 }
 
 void FifteenStep::begin()
@@ -54,47 +55,62 @@ void FifteenStep::run()
 
 void FifteenStep::setTempo(int tempo)
 {
+
   // tempo in beats per minute
   _tempo = tempo;
+
   // 60 seconds / bpm / 4 sixteeth notes per beat
   // gives you the value of a sixteenth note
   _sixteenth = 60000L / _tempo / 4;
+
+  // grab new shuffle division
+  unsigned long div = _shuffleDivision();
+
+  // make sure the shuffle doesn't push the
+  // note past the new sixteenth note value
+  if((_sixteenth - div) > _shuffle)
+    return;
+
+  // reset shuffle to last value
+  _shuffle = _sixteenth - div;
+
 }
 
 void FifteenStep::setSteps(int steps)
 {
-
-  int i = 0;
-
-  // free memory if sequence array is set
-  if(_sequence)
-  {
-
-    // clear positions
-    for(; i < _steps; ++i) {
-
-      if(_sequence[i])
-        delete [] _sequence[i];
-
-    }
-
-    // free main sequence array
-    delete [] _sequence;
-
-  }
-
   // set new step value
   _steps = steps;
+}
 
-  // initialize the main dimension of new sequence array
-  _sequence = new FifteenStepNote*[_steps];
+void FifteenStep::increaseShuffle()
+{
 
-  // guess how many notes to track for each
-  // position by using step count as default
-  for(i=0; i < _steps; ++i)
-  {
-    _sequence[i] = new FifteenStepNote[_steps];
-  }
+  // grab current shuffle division
+  unsigned long div = _shuffleDivision();
+
+  // make sure the next value doesn't
+  // push the note past the next one
+  if(_sixteenth <= (_shuffle + div))
+    return;
+
+  // we're safe, increase by division
+  _shuffle += div;
+
+}
+
+void FifteenStep::decreaseShuffle()
+{
+
+  // grab current shuffle division
+  unsigned long div = _shuffleDivision();
+
+  // make sure the next value doesn't
+  // push the shuffle value negative
+  if(0 > (_shuffle - div))
+    return;
+
+  // we're safe, decrease by division
+  _shuffle -= div;
 
 }
 
@@ -111,7 +127,7 @@ void FifteenStep::setStepHandler(StepCallback cb)
   _step_cb = cb;
 }
 
-void FifteenStep::set(bool on, byte pitch, byte velocity) {
+void FifteenStep::setNote(bool on, byte pitch, byte velocity) {
 
   // bail if the sequence is broken
   if(! _sequence || ! _sequence[_position])
@@ -139,52 +155,23 @@ void FifteenStep::set(bool on, byte pitch, byte velocity) {
 
   }
 
-  // if we reach here, we're out of free spots
-  // at this location and need to increase the size
-  // of the array of notes
-  _positionResize();
-
-  // increment i by 1 so we can use the new array slots
-  i++;
-
-  // bail. there should be a new free spot here
-  if(! _sequence[_position][i].available)
-    return;
-
   // all is good. set the note
   _sequence[_position][i].set(on, pitch, velocity);
 
 }
 
-void FifteenStep::_positionResize()
+unsigned long FifteenStep::_shuffleDivision()
 {
-
-  // double size of position to avoid
-  // doing this a bunch of times
-  int length = _positionLength();
-  int new_length = length * 2;
-  FifteenStepNote *tmp = new FifteenStepNote[new_length];
-
-  // copy old array to new array
-  memcpy(tmp, _sequence[_position], length * sizeof(FifteenStepNote));
-
-  // delete old array
-  delete [] _sequence[_position];
-
-  // set position to new array
-  _sequence[_position] = tmp;
-
-}
-
-int FifteenStep::_positionLength()
-{
-  // TODO: this doesn't work with pointers
-  return sizeof(_sequence[_position]) / sizeof(FifteenStepNote);
+  // split the 16th into 8 parts
+  // so user can change the shuffle
+  return _sixteenth / 8;
 }
 
 void FifteenStep::_step()
 {
 
+  // save the last position so we
+  // can provide it to the callback
   int last = _position;
 
   // increment the position
