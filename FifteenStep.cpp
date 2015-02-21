@@ -16,6 +16,15 @@ FifteenStep::FifteenStep()
   _next_beat = 0;
   _position = 0;
   _shuffle = 0;
+  _polyphony = FS_DEFAULT_POLYPHONY;
+}
+
+FifteenStep::FifteenStep(int polyphony)
+{
+  _next_beat = 0;
+  _position = 0;
+  _shuffle = 0;
+  _polyphony = polyphony;
 }
 
 void FifteenStep::begin()
@@ -129,34 +138,6 @@ void FifteenStep::setStepHandler(StepCallback cb)
 
 void FifteenStep::setNote(bool on, byte pitch, byte velocity) {
 
-  // bail if the sequence is broken
-  if(! _sequence || ! _sequence[_position])
-    return;
-
-  int i = 0;
-
-  for(; i < _positionLength(); ++i)
-  {
-
-    // if note is already set at position
-    // just modify that instance
-    if(pitch == _sequence[_position][i].pitch)
-    {
-      _sequence[_position][i].set(on, pitch, velocity);
-      return;
-    }
-
-    // if note doesn't exist at position
-    // set the first available free spot
-    if(_sequence[_position][i].available) {
-      _sequence[_position][i].set(on, pitch, velocity);
-      return;
-    }
-
-  }
-
-  // all is good. set the note
-  _sequence[_position][i].set(on, pitch, velocity);
 
 }
 
@@ -198,18 +179,9 @@ void FifteenStep::_triggerNotes()
   if(! _midi_cb)
     return;
 
-  // bail if no notes have been set for this position
-  if(! _sequence || ! _sequence[_position])
-    return;
-
   // loop through the position and trigger notes
-  for(int i=0; i < _positionLength(); ++i)
+  for(int i=0; i < length; ++i)
   {
-
-    // we've reached the end of set notes
-    // at this position, so we can bail
-    if(_sequence[_position][i].available)
-      break;
 
     _midi_cb(
       _sequence[_position][i].on ? 0x9 : 0x8,
