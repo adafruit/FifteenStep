@@ -263,8 +263,7 @@ void FifteenStep::decreaseShuffle()
 //
 void FifteenStep::setMidiHandler(MIDIcallback cb)
 {
-  // the passed callback will be used
-  // to send MIDI commands to the user's device
+  // store the passed callback
   _midi_cb = cb;
 }
 
@@ -283,7 +282,7 @@ void FifteenStep::setMidiHandler(MIDIcallback cb)
 //
 void FifteenStep::setStepHandler(StepCallback cb)
 {
-  // set the callback to call on position change
+  // store the passed callback
   _step_cb = cb;
 }
 
@@ -303,20 +302,25 @@ void FifteenStep::setNote(bool on, byte pitch, byte velocity)
 {
 
   int i = 0;
+  int pos = _quantizedPosition();
 
   // store note offs as velocity 0 to save space
   if(! on)
     velocity = 0;
 
   // clean up unused values
-  _cleanup();
+  //_cleanup();
+
+  // send midi note if the callback is set
+  if(_midi_cb)
+    _midi_cb(velocity > 0 ? 0x9 : 0x8, pitch, velocity);
 
   // loop through the sequence and make sure we reuse existing slots
   for(i=0; i < _sequence_size; ++i)
   {
 
     // continue if this isn't the current step and pitch
-    if(_sequence[i].step != _position && _sequence[i].pitch != pitch)
+    if(_sequence[i].step != pos || _sequence[i].pitch != pitch)
       continue;
 
     // if note on was sent and note is currently
@@ -329,6 +333,8 @@ void FifteenStep::setNote(bool on, byte pitch, byte velocity)
 
     // set existing slot to new value
     _sequence[i].velocity = velocity;
+
+    // no need to continue
     return;
 
   }
@@ -338,11 +344,15 @@ void FifteenStep::setNote(bool on, byte pitch, byte velocity)
   {
 
     // used already, keep going
-    if(_sequence[i].pitch > 0 && _sequence[i].velocity > 0)
+    if(_sequence[i].pitch > 0)
       continue;
 
     // free slot. use it
-    _sequence[i] = {pitch, velocity, _position};
+    _sequence[i].pitch = pitch;
+    _sequence[i].velocity = velocity;
+    _sequence[i].step = pos;
+
+    // no need to continue
     return;
 
   }
@@ -354,22 +364,6 @@ void FifteenStep::setNote(bool on, byte pitch, byte velocity)
 //                            PRIVATE METHODS                                //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-
-// _shuffleDivision
-//
-// Calculates the size of the shuffle division
-// to use when increasing or decreasing the shuffle
-// amount.
-//
-// @access private
-// @return size of shuffle division
-//
-unsigned long FifteenStep::_shuffleDivision()
-{
-  // split the 16th into 8 parts
-  // so user can change the shuffle
-  return _sixteenth / 8;
-}
 
 // _init
 //
@@ -395,6 +389,60 @@ void FifteenStep::_init(int memory)
   // set sequence to default note value
   for(int i=0; i < _sequence_size; ++i)
     _sequence[i] = DEFAULT_NOTE;
+
+}
+
+// _shuffleDivision
+//
+// Calculates the size of the shuffle division
+// to use when increasing or decreasing the shuffle
+// amount.
+//
+// @access private
+// @return size of shuffle division
+//
+unsigned long FifteenStep::_shuffleDivision()
+{
+  // split the 16th into 8 parts
+  // so user can change the shuffle
+  return _sixteenth / 8;
+}
+
+// _quantizedPosition
+//
+// Returns the closest 16th note to the
+// present time. This is used to see where to
+// save the new note.
+//
+// @access private
+// @return quantized position
+//
+int FifteenStep::_quantizedPosition()
+{
+
+  // what's the time?
+  unsigned long now = millis();
+
+  // calculate value of 32nd note
+  unsigned long thirty_second = _sixteenth / 2;
+
+  // add or subtract shuffle if needed
+  if((_position % 2) != 0)
+    thirty_second -= (_shuffle / 2);
+  else
+    thirty_second += (_shuffle / 2);
+
+  // use current position if below middle point
+  if(now <= (_next_beat - thirty_second))
+    return _position;
+
+  // return first step if the next step
+  // is past the step count
+  if((_position + 1) >= _steps)
+    return 0;
+
+  // return next step
+  return _position + 1;
 
 }
 
@@ -472,13 +520,13 @@ void FifteenStep::_step()
   if(_position >= _steps)
     _position = 0;
 
+  // trigger next set of notes
+  _triggerNotes();
+
   // tell the callback where we are
   // if it has been set by the sketch
   if(_step_cb)
     _step_cb(_position, last);
-
-  // trigger next set of notes
-  _triggerNotes();
 
 }
 

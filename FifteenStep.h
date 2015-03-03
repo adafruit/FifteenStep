@@ -90,6 +90,7 @@ class FifteenStep
     unsigned long     _shuffle;
     unsigned long     _next_beat;
     unsigned long     _shuffleDivision();
+    int               _quantizedPosition();
     void              _init(int memory);
     void              _cleanup();
     void              _step();
