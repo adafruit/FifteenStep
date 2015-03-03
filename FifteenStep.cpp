@@ -11,37 +11,107 @@
 #include "Arduino.h"
 #include "FifteenStep.h"
 
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+//                            CONSTRUCTORS                                   //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+// FifteenStep
+//
+// The default constructor that will reserve a chunk of
+// sram in bytes equal to the value of FS_DEFAULT_MEMORY.
+//
+// @access public
+//
 FifteenStep::FifteenStep()
 {
   _init(FS_DEFAULT_MEMORY);
 }
 
+// FifteenStep
+//
+// An alternative constructor that allows the user to set
+// the amount of memory the sequencer will reserve. Setting
+// the memory value to a custom value will alter the number of
+// steps and the amount of polyphony the sequencer supports.
+//
+// @access public
+// @param the amount of sram to reserve in bytes
+//
 FifteenStep::FifteenStep(int memory)
 {
   _init(memory);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+//                            PUBLIC METHODS                                 //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+// begin
+//
+// Sets the tempo and step count to the default values.
+//
+// @access public
+// @return void
+//
 void FifteenStep::begin()
 {
   begin(FS_DEFAULT_TEMPO, FS_DEFAULT_STEPS);
 }
 
+// begin
+//
+// Sets the tempo to user supplied value in beats per
+// minute (BPM), and sets the step count to the default
+// value of 16.
+//
+// @access public
+// @param tempo in beats per minute
+// @return void
+//
 void FifteenStep::begin(int tempo)
 {
   begin(tempo, FS_DEFAULT_STEPS);
 }
 
+// begin
+//
+// Sets the tempo to user supplied value in beats per
+// minute (BPM), and sets the 16th note step count to the user
+// supplied count value.
+//
+// @access public
+// @param tempo in beats per minute
+// @param number of 16th note steps before looping
+// @return void
+//
 void FifteenStep::begin(int tempo, int steps)
 {
   setTempo(tempo);
   setSteps(steps);
 }
 
+// run
+//
+// IMPORTANT: This method should only be called in the
+// main loop of the sketch, and is required for the
+// sequencer to work.
+//
+// This method checks the current time against the time of the
+// next scheduled beat and steps the progression forward if the
+// current time is equal to or greater than the next beat time.
+//
+// @access public
+// @return void
+//
 void FifteenStep::run()
 {
 
   // what's the time?
-  unsigned long now = millis();
+  unsigned long now = millis(); // it's time to get ill.
 
   // don't step yet
   if(now < _next_beat)
@@ -60,6 +130,16 @@ void FifteenStep::run()
 
 }
 
+// setTempo
+//
+// Allows user to dynamiclly set the tempo in
+// beats per minute. The tempo value will be used to
+// calculate the length of the 16th note steps, and the
+// shuffle division value.
+//
+// @access public
+// @return void
+//
 void FifteenStep::setTempo(int tempo)
 {
 
@@ -83,6 +163,16 @@ void FifteenStep::setTempo(int tempo)
 
 }
 
+// setSteps
+//
+// Allows user to dynamically set the number of 16th note
+// steps the sequencer will increment to before looping
+// back to the beginning. Increasing the step count will
+// decrease the amount of polyphony the sequencer supports.
+//
+// @access pubilc
+// @return void
+//
 void FifteenStep::setSteps(int steps)
 {
 
@@ -98,6 +188,14 @@ void FifteenStep::setSteps(int steps)
 
 }
 
+// increaseShuffle
+//
+// Allows user to dynamically increase the shuffle
+// amount until the max shuffle value is reached.
+//
+// @access public
+// @return void
+//
 void FifteenStep::increaseShuffle()
 {
 
@@ -114,6 +212,15 @@ void FifteenStep::increaseShuffle()
 
 }
 
+// decreaseShuffle
+//
+// Allows user to dynamically decrease the shuffle
+// amount until the minimum (0) shuffle amount has
+// been reached.
+//
+// @access public
+// @return void
+//
 void FifteenStep::decreaseShuffle()
 {
 
@@ -130,6 +237,30 @@ void FifteenStep::decreaseShuffle()
 
 }
 
+// setMidiHandler
+//
+// IMPORTANT: Setting a MIDI handler is required for the sequencer
+// to operate.
+//
+// Allows user to set a callback that will be called when
+// the sequencer needs to send MIDI messages. Using this
+// callback allows the sequencer to be decoupled from the
+// MIDI implementation.
+//
+// The callback will be called with three arguments: the MIDI
+// command, the first argument for that MIDI command, and the
+// second argument for that command. For example, if the callback
+// was called with a note on message, the arguments would be the
+// note on command (0x9), the pitch value (0x3C), and the velocity
+// value (0x40). The user is responsible for passing those values
+// to the specific MIDI library they are using. Please check the
+// typedef for MIDIcallback in FifteenStep.h for more info about
+// the arguments.
+//
+// @access public
+// @param the midi callback that the sequencer will use
+// @return void
+//
 void FifteenStep::setMidiHandler(MIDIcallback cb)
 {
   // the passed callback will be used
@@ -137,12 +268,37 @@ void FifteenStep::setMidiHandler(MIDIcallback cb)
   _midi_cb = cb;
 }
 
+// setStepHandler
+//
+// Allows user to specifiy a callback that will be called
+// whenever the progression steps forward. The callback will
+// be called with the current position as the first argument,
+// and the previous position as the second argument. Please check
+// the typedef for StepCallback in FifteenStep.h for more info
+// about the arguments passed to the callback.
+//
+// @access public
+// @param the callback function to call when the progression advances
+// @return void
+//
 void FifteenStep::setStepHandler(StepCallback cb)
 {
   // set the callback to call on position change
   _step_cb = cb;
 }
 
+// setNote
+//
+// Allows user to set a note on or off value at the current
+// step position. If there is already a note on value at this
+// position, the note will be turned off.
+//
+// @access public
+// @param note on or off message
+// @param pitch of note
+// @param velocity of note
+// @return void
+//
 void FifteenStep::setNote(bool on, byte pitch, byte velocity)
 {
 
@@ -193,6 +349,21 @@ void FifteenStep::setNote(bool on, byte pitch, byte velocity)
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//                                                                           //
+//                            PRIVATE METHODS                                //
+//                                                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+// _shuffleDivision
+//
+// Calculates the size of the shuffle division
+// to use when increasing or decreasing the shuffle
+// amount.
+//
+// @access private
+// @return size of shuffle division
+//
 unsigned long FifteenStep::_shuffleDivision()
 {
   // split the 16th into 8 parts
@@ -200,6 +371,18 @@ unsigned long FifteenStep::_shuffleDivision()
   return _sixteenth / 8;
 }
 
+// _init
+//
+// A common init method for the constructors to
+// use when the class is initialized. Lowering the
+// amount of memory the sequencer uses will effect the
+// amount of polyphony the sequencer will support. By
+// default the sequencer allocates 1k of sram.
+//
+// @access private
+// @param the amount of sram to use in bytes
+// @return void
+//
 void FifteenStep::_init(int memory)
 {
 
@@ -215,6 +398,16 @@ void FifteenStep::_init(int memory)
 
 }
 
+// _cleanup
+//
+// Resets any set notes that don't have note on messages
+// to the default note state. This allows their slots
+// to be reused by new notes. This method also cleans up
+// any notes that are outside of the current step range.
+//
+// @access private
+// @return void
+//
 void FifteenStep::_cleanup()
 {
 
@@ -257,6 +450,14 @@ void FifteenStep::_cleanup()
 
 }
 
+// _step
+//
+// Moves _position forward by one step, calls the
+// step callback with the current & last step position,
+// and triggers any notes at the current position.
+//
+// @access private
+// @return void
 void FifteenStep::_step()
 {
 
@@ -281,6 +482,15 @@ void FifteenStep::_step()
 
 }
 
+// _triggerNotes
+//
+// Calls the user defined MIDI callback with
+// all of the note on and off messages at the
+// current step position.
+//
+// @access private
+// @return void
+//
 void FifteenStep::_triggerNotes()
 {
 
@@ -310,4 +520,3 @@ void FifteenStep::_triggerNotes()
   }
 
 }
-

@@ -18,15 +18,47 @@
 #define FS_DEFAULT_MEMORY 1024
 #define FS_MAX_STEPS 256
 
+// MIDIcallback
+//
+// This defines the MIDI callback function format that is required by the
+// sequencer.
+//
+// Most of the time these arguments will represent the following:
+//
+// command: note on or off (0x9 or 0x8)
+// arg1: pitch value
+// arg1: velocity value
+//
+// It's possible that there will be other types of MIDI messages sent
+// to this callback in the future, so please check the command sent if
+// you are doing something other than passing on the MIDI messages to
+// a MIDI library.
+//
+typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
+
+// StepCallback
+//
+// This defines the format of the step callback function that will be used
+// by the sequencer. This callback will be called with the current
+// step position and last step position whenever the step changes.
+// Please check FifteenStep.cpp for more info about setting the callback
+// that will be used.
+//
+typedef void (*StepCallback) (int current, int last);
+
+// FifteenStepNote
+//
+// This defines the note type that is used when storing sequence note
+// values. The notes will be set to DEFAULT_NOTE until they are modified
+// by the user.
 typedef struct
 {
   byte pitch;
   byte velocity;
   byte step;
 } FifteenStepNote;
-typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
-typedef void (*StepCallback) (int current, int last);
 
+// default values for sequence array members
 const FifteenStepNote DEFAULT_NOTE = {0x0, 0x0, 0x0};
 
 class FifteenStep
