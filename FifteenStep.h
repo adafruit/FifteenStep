@@ -15,7 +15,7 @@
 
 #define FS_DEFAULT_TEMPO 120
 #define FS_DEFAULT_STEPS 16
-#define FS_MAX_MEMORY 1024
+#define FS_DEFAULT_MEMORY 1024
 #define FS_MAX_STEPS 256
 
 typedef struct
@@ -58,6 +58,7 @@ class FifteenStep
     unsigned long     _shuffle;
     unsigned long     _next_beat;
     unsigned long     _shuffleDivision();
+    void              _init(int memory);
     void              _cleanup();
     void              _step();
     void              _triggerNotes();

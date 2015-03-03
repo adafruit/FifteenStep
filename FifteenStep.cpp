@@ -13,32 +13,12 @@
 
 FifteenStep::FifteenStep()
 {
-
-  _next_beat = 0;
-  _position = 0;
-  _shuffle = 0;
-  _sequence_size = FS_MAX_MEMORY / sizeof(FifteenStepNote);
-  _sequence = new FifteenStepNote[_sequence_size];
-
-  // set sequence to default note value
-  for(int i=0; i < _sequence_size; ++i)
-    _sequence[i] = DEFAULT_NOTE;
-
+  _init(FS_DEFAULT_MEMORY);
 }
 
 FifteenStep::FifteenStep(int memory)
 {
-
-  _next_beat = 0;
-  _position = 0;
-  _shuffle = 0;
-  _sequence_size = memory / sizeof(FifteenStepNote);
-  _sequence = new FifteenStepNote[_sequence_size];
-
-  // set sequence to default note value
-  for(int i=0; i < _sequence_size; ++i)
-    _sequence[i] = DEFAULT_NOTE;
-
+  _init(memory);
 }
 
 void FifteenStep::begin()
@@ -218,6 +198,21 @@ unsigned long FifteenStep::_shuffleDivision()
   // split the 16th into 8 parts
   // so user can change the shuffle
   return _sixteenth / 8;
+}
+
+void FifteenStep::_init(int memory)
+{
+
+  _next_beat = 0;
+  _position = 0;
+  _shuffle = 0;
+  _sequence_size = memory / sizeof(FifteenStepNote);
+  _sequence = new FifteenStepNote[_sequence_size];
+
+  // set sequence to default note value
+  for(int i=0; i < _sequence_size; ++i)
+    _sequence[i] = DEFAULT_NOTE;
+
 }
 
 void FifteenStep::_cleanup()
