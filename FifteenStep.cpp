@@ -13,18 +13,32 @@
 
 FifteenStep::FifteenStep()
 {
+
   _next_beat = 0;
   _position = 0;
   _shuffle = 0;
-  _polyphony = FS_DEFAULT_POLYPHONY;
+  _sequence_size = FS_MAX_MEMORY / sizeof(FifteenStepNote);
+  _sequence = new FifteenStepNote[_sequence_size];
+
+  // set sequence to default note value
+  for(int i=0; i < _sequence_size; ++i)
+    _sequence[i] = DEFAULT_NOTE;
+
 }
 
-FifteenStep::FifteenStep(int polyphony)
+FifteenStep::FifteenStep(int memory)
 {
+
   _next_beat = 0;
   _position = 0;
   _shuffle = 0;
-  _polyphony = polyphony;
+  _sequence_size = memory / sizeof(FifteenStepNote);
+  _sequence = new FifteenStepNote[_sequence_size];
+
+  // set sequence to default note value
+  for(int i=0; i < _sequence_size; ++i)
+    _sequence[i] = DEFAULT_NOTE;
+
 }
 
 void FifteenStep::begin()
@@ -60,6 +74,10 @@ void FifteenStep::run()
   // so we know when to trigger the next step
   _next_beat = now + _sixteenth;
 
+  // add shuffle offset to next beat if odd step
+  if((_position % 2) != 0)
+    _next_beat += _shuffle;
+
 }
 
 void FifteenStep::setTempo(int tempo)
@@ -87,8 +105,17 @@ void FifteenStep::setTempo(int tempo)
 
 void FifteenStep::setSteps(int steps)
 {
+
   // set new step value
   _steps = steps;
+
+  // don't allow user to set a crazy amount of steps
+  if(_steps > FS_MAX_STEPS)
+    _steps = FS_MAX_STEPS;
+
+  // clean up steps that aren't used anymore
+  _cleanup();
+
 }
 
 void FifteenStep::increaseShuffle()
@@ -136,8 +163,53 @@ void FifteenStep::setStepHandler(StepCallback cb)
   _step_cb = cb;
 }
 
-void FifteenStep::setNote(bool on, byte pitch, byte velocity) {
+void FifteenStep::setNote(bool on, byte pitch, byte velocity)
+{
 
+  int i = 0;
+
+  // store note offs as velocity 0 to save space
+  if(! on)
+    velocity = 0;
+
+  // clean up unused values
+  _cleanup();
+
+  // loop through the sequence and make sure we reuse existing slots
+  for(i=0; i < _sequence_size; ++i)
+  {
+
+    // continue if this isn't the current step and pitch
+    if(_sequence[i].step != _position && _sequence[i].pitch != pitch)
+      continue;
+
+    // if note on was sent and note is currently
+    // on at this step, turn it off
+    if(on && _sequence[i].velocity > 0)
+    {
+      _sequence[i].velocity = 0;
+      return;
+    }
+
+    // set existing slot to new value
+    _sequence[i].velocity = velocity;
+    return;
+
+  }
+
+  // if we've made it here, we have to find a new slot to use.
+  for(i=0; i < _sequence_size; ++i)
+  {
+
+    // used already, keep going
+    if(_sequence[i].pitch > 0 && _sequence[i].velocity > 0)
+      continue;
+
+    // free slot. use it
+    _sequence[i] = {pitch, velocity, _position};
+    return;
+
+  }
 
 }
 
@@ -146,6 +218,48 @@ unsigned long FifteenStep::_shuffleDivision()
   // split the 16th into 8 parts
   // so user can change the shuffle
   return _sixteenth / 8;
+}
+
+void FifteenStep::_cleanup()
+{
+
+  int i;
+  byte pitches[16];
+
+  // set up pitch defaults
+  for(i=0; i < 16; ++i)
+    pitches[i] = 0x0;
+
+  // loop through the sequence and mark notes that have note ons
+  for(i=0; i < _sequence_size; ++i)
+  {
+
+    // reset any steps that are over the current step count
+    if(_sequence[i].step >= _steps)
+      _sequence[i] = DEFAULT_NOTE;
+
+    // ignore note offs
+    if(_sequence[i].velocity == 0)
+      continue;
+
+    // flip the bit for the current pitch
+    pitches[_sequence[i].pitch / 8] |= 1 << (_sequence[i].pitch % 8);
+
+  }
+
+  // clear any pitches that don't have note ons
+  for(i=0; i < _sequence_size; ++i)
+  {
+
+    // if pitch has a note on, move forward
+    if((pitches[_sequence[i].pitch / 8] >> (_sequence[i].pitch % 8)) & 1)
+      continue;
+
+    // clear notes if there are no note ons
+    _sequence[i] = DEFAULT_NOTE;
+
+  }
+
 }
 
 void FifteenStep::_step()
@@ -179,14 +293,23 @@ void FifteenStep::_triggerNotes()
   if(! _midi_cb)
     return;
 
-  // loop through the position and trigger notes
-  for(int i=0; i < length; ++i)
+  // loop through the sequence and trigger notes at the current position
+  for(int i=0; i < _sequence_size; ++i)
   {
 
+    // ignore if it's not the current position
+    if(_sequence[i].step != _position)
+      continue;
+
+    // if this position is in the default state, ignore it
+    if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0)
+      continue;
+
+    // send values to callback
     _midi_cb(
-      _sequence[_position][i].on ? 0x9 : 0x8,
-      _sequence[_position][i].pitch,
-      _sequence[_position][i].velocity
+      _sequence[i].velocity > 0 ? 0x9 : 0x8,
+      _sequence[i].pitch,
+      _sequence[i].velocity
     );
 
   }

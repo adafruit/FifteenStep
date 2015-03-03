@@ -15,26 +15,29 @@
 
 #define FS_DEFAULT_TEMPO 120
 #define FS_DEFAULT_STEPS 16
-#define FS_DEFAULT_POLYPHONY 8
+#define FS_MAX_MEMORY 1024
+#define FS_MAX_STEPS 256
 
-struct note
+typedef struct
 {
   byte pitch;
   byte velocity;
-};
-
-typedef struct note FifteenStepNote;
+  byte step;
+} FifteenStepNote;
 typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
 typedef void (*StepCallback) (int current, int last);
+
+const FifteenStepNote DEFAULT_NOTE = {0x0, 0x0, 0x0};
 
 class FifteenStep
 {
   public:
     FifteenStep();
-    FifteenStep(int polyphony);
+    FifteenStep(int memory);
     void  begin();
     void  begin(int tempo);
     void  begin(int tempo, int steps);
+    void  begin(int tempo, int steps, int polyphony);
     void  run();
     void  setTempo(int tempo);
     void  setSteps(int steps);
@@ -46,14 +49,16 @@ class FifteenStep
   private:
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
+    FifteenStepNote*  _sequence;
+    int               _sequence_size;
     int               _tempo;
-    int               _steps;
-    int               _polyphony;
-    int               _position;
+    byte              _steps;
+    byte              _position;
     unsigned long     _sixteenth;
     unsigned long     _shuffle;
     unsigned long     _next_beat;
     unsigned long     _shuffleDivision();
+    void              _cleanup();
     void              _step();
     void              _triggerNotes();
 };
