@@ -15,7 +15,7 @@
 
 #define FS_DEFAULT_TEMPO 120
 #define FS_DEFAULT_STEPS 16
-#define FS_DEFAULT_MEMORY 1024
+#define FS_DEFAULT_MEMORY 512
 #define FS_MAX_STEPS 256
 
 // MIDIcallback
