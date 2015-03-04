@@ -98,6 +98,8 @@ class FifteenStep
     unsigned long     _shuffleDivision();
     int               _quantizedPosition();
     void              _init(int memory);
+    void              _resetSequence();
+    void              _loopPosition();
     void              _tick();
     void              _step();
     void              _triggerNotes();

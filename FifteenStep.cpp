@@ -116,25 +116,28 @@ void FifteenStep::run()
   // what's the time?
   unsigned long now = millis(); // it's time to get ill.
 
+  // send clock
   if(now >= _next_clock) {
     _tick();
     _next_clock = now + _clock;
   }
 
-  // don't step yet
-  if(now < _next_beat)
-    return;
+  // step if it's time
+  if(now >= _next_beat)
+  {
 
-  // advance and send notes
-  _step();
+    // advance and send notes
+    _step();
 
-  // add the length of a sixteenth note to now
-  // so we know when to trigger the next step
-  _next_beat = now + _sixteenth;
+    // add the length of a sixteenth note to now
+    // so we know when to trigger the next step
+    _next_beat = now + _sixteenth;
 
-  // add shuffle offset to next beat if odd step
-  if((_position % 2) != 0)
-    _next_beat += _shuffle;
+    // add shuffle offset to next beat if odd step
+    if((_position % 2) != 0)
+      _next_beat += _shuffle;
+
+  }
 
 }
 
@@ -453,31 +456,21 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 //
 // Turns all notes off and resets sequence
 //
-// @access private
+// @access public
 // @return void
 //
 void FifteenStep::panic()
 {
 
-  // set sequence to default note value
-  for(int i=0; i < _sequence_size; ++i)
+  for(int i=0; i < 16; ++i)
   {
-
-    // send note off for pitch if callback is set
+    // send all notes off for each channel if callback is set
     if(_midi_cb)
-    {
-      _midi_cb(
-        _sequence[i].channel,
-        0x8,
-        _sequence[i].pitch,
-        0
-      );
-    }
-
-    // reset to default
-    _sequence[i] = DEFAULT_NOTE;
-
+      _midi_cb(i, 0x7B, 0x0, 0x0);
   }
+
+  // clear notes
+  _resetSequence();
 
 }
 
@@ -510,9 +503,8 @@ void FifteenStep::_init(int memory)
   _sequence_size = memory / sizeof(FifteenStepNote);
   _sequence = new FifteenStepNote[_sequence_size];
 
-  // set sequence to default note value
-  for(int i=0; i < _sequence_size; ++i)
-    _sequence[i] = DEFAULT_NOTE;
+  // set up default notes
+  _resetSequence();
 
 }
 
@@ -530,6 +522,19 @@ unsigned long FifteenStep::_shuffleDivision()
   // split the 16th into 8 parts
   // so user can change the shuffle
   return _sixteenth / 8;
+}
+
+// _resetSequence
+//
+// Sets sequence to default state
+//
+// @access private
+// @return void
+void FifteenStep::_resetSequence()
+{
+  // set sequence to default note value
+  for(int i=0; i < _sequence_size; ++i)
+    _sequence[i] = DEFAULT_NOTE;
 }
 
 // _quantizedPosition
@@ -619,6 +624,26 @@ void FifteenStep::_tick()
 
   // tick
   _midi_cb(0x0, 0xF8, 0x0, 0x0);
+
+}
+
+// _loopPosition
+//
+// Calls the user defined MIDI callback with
+// the position of playback
+//
+// @access private
+// @return void
+//
+void FifteenStep::_loopPosition()
+{
+
+  // bail if the midi callback isn't set
+  if(! _midi_cb)
+    return;
+
+  // send position
+  _midi_cb(0x0, 0xF2, 0x0, _position);
 
 }
 
