@@ -25,6 +25,7 @@
 //
 // Most of the time these arguments will represent the following:
 //
+// channel: midi channel
 // command: note on or off (0x9 or 0x8)
 // arg1: pitch value
 // arg1: velocity value
@@ -34,7 +35,7 @@
 // you are doing something other than passing on the MIDI messages to
 // a MIDI library.
 //
-typedef void (*MIDIcallback) (byte command, byte arg1, byte arg2);
+typedef void (*MIDIcallback) (byte channel, byte command, byte arg1, byte arg2);
 
 // StepCallback
 //
@@ -53,13 +54,14 @@ typedef void (*StepCallback) (int current, int last);
 // by the user.
 typedef struct
 {
+  byte channel;
   byte pitch;
   byte velocity;
   byte step;
 } FifteenStepNote;
 
 // default values for sequence array members
-const FifteenStepNote DEFAULT_NOTE = {0x0, 0x0, 0x0};
+const FifteenStepNote DEFAULT_NOTE = {0x0, 0x0, 0x0, 0x0};
 
 class FifteenStep
 {
@@ -77,7 +79,7 @@ class FifteenStep
     void  decreaseShuffle();
     void  setMidiHandler(MIDIcallback cb);
     void  setStepHandler(StepCallback cb);
-    void  setNote(bool on, byte pitch, byte velocity);
+    void  setNote(byte channel, byte pitch, byte velocity);
   private:
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
@@ -86,13 +88,15 @@ class FifteenStep
     int               _tempo;
     byte              _steps;
     byte              _position;
+    unsigned long     _clock;
     unsigned long     _sixteenth;
     unsigned long     _shuffle;
     unsigned long     _next_beat;
+    unsigned long     _next_clock;
     unsigned long     _shuffleDivision();
     int               _quantizedPosition();
     void              _init(int memory);
-    void              _cleanup();
+    void              _tick();
     void              _step();
     void              _triggerNotes();
 };

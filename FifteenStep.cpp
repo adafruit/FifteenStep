@@ -113,6 +113,12 @@ void FifteenStep::run()
   // what's the time?
   unsigned long now = millis(); // it's time to get ill.
 
+
+  if(now >= _next_clock) {
+    _tick();
+    _next_clock = now + _clock;
+  }
+
   // don't step yet
   if(now < _next_beat)
     return;
@@ -150,6 +156,10 @@ void FifteenStep::setTempo(int tempo)
   // gives you the value of a sixteenth note
   _sixteenth = 60000L / _tempo / 4;
 
+  // midi clock messages should be sent 24 times
+  // for every quarter note
+  _clock = 60000L / _tempo / 24;
+
   // grab new shuffle division
   unsigned long div = _shuffleDivision();
 
@@ -183,8 +193,15 @@ void FifteenStep::setSteps(int steps)
   if(_steps > FS_MAX_STEPS)
     _steps = FS_MAX_STEPS;
 
-  // clean up steps that aren't used anymore
-  _cleanup();
+  // loop through the sequence and clear notes past the current step
+  for(int i=0; i < _sequence_size; ++i)
+  {
+
+    // reset any steps that are over the current step count
+    if(_sequence[i].step >= _steps)
+      _sequence[i] = DEFAULT_NOTE;
+
+  }
 
 }
 
@@ -298,62 +315,130 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // @param velocity of note
 // @return void
 //
-void FifteenStep::setNote(bool on, byte pitch, byte velocity)
+void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 {
 
   int i = 0;
-  int pos = _quantizedPosition();
+  int position = _quantizedPosition();
+  bool existing_on = false;
+  bool existing_off = false;
+  bool added = false;
+  int toggle_note = 0;
 
-  // store note offs as velocity 0 to save space
-  if(! on)
-    velocity = 0;
-
-  // clean up unused values
-  //_cleanup();
-
-  // send midi note if the callback is set
-  if(_midi_cb)
-    _midi_cb(velocity > 0 ? 0x9 : 0x8, pitch, velocity);
-
-  // loop through the sequence and make sure we reuse existing slots
+  // find a new slot to use
   for(i=0; i < _sequence_size; ++i)
   {
 
-    // continue if this isn't the current step and pitch
-    if(_sequence[i].step != pos || _sequence[i].pitch != pitch)
+    // used by another pitch, keep going
+    if(_sequence[i].pitch > 0 && _sequence[i].pitch != pitch)
       continue;
 
-    // if note on was sent and note is currently
-    // on at this step, turn it off
-    if(on && _sequence[i].velocity > 0)
+    // used by another step, keep going
+    if(_sequence[i].step != position && _sequence[i].pitch != 0)
+      continue;
+
+    // used by another channel, keep going
+    if(_sequence[i].channel != channel && _sequence[i].pitch != 0)
+      continue;
+
+    // matches the sent step, pitch & channel
+    if(_sequence[i].pitch == pitch && _sequence[i].step == position && _sequence[i].channel == channel)
     {
-      _sequence[i].velocity = 0;
-      return;
+
+      // this is a note on
+      if(_sequence[i].velocity > 0)
+      {
+
+        // check if there's already a note on at this step
+        if(existing_on)
+        {
+
+          // free this one since we don't need two at this step
+          _sequence[i] = DEFAULT_NOTE;
+
+          // turn toggle note off since this step already had a note on
+          _sequence[toggle_note].velocity = 0;
+
+          // now there's an existing off
+          existing_off = true;
+
+        }
+        else
+        {
+          // this is the first on at this step
+          existing_on = true;
+          // mark the location of this note on so we can toggle it if needed
+          toggle_note = i;
+        }
+
+      }
+      else
+      {
+
+        // if there is already a note off at this step, we can reuse this slot.
+        // if not, then mark this as the existing off note
+        if(existing_off)
+          _sequence[i] = DEFAULT_NOTE;
+        else
+          existing_off = true;
+
+      }
+
     }
 
-    // set existing slot to new value
-    _sequence[i].velocity = velocity;
+    // not a match, but there's a free slot and we haven't saved the new note yet.
+    if(_sequence[i].pitch == 0 && _sequence[i].step == 0 && _sequence[i].channel == 0 && !added)
+    {
 
-    // no need to continue
-    return;
+      // make sure there already isn't a note on at this step
+      if(existing_on && velocity > 0)
+      {
 
-  }
+        // turn toggle note off since this step already had a note on
+        _sequence[toggle_note].velocity = 0;
 
-  // if we've made it here, we have to find a new slot to use.
-  for(i=0; i < _sequence_size; ++i)
-  {
+        // now there's an existing off
+        existing_off = true;
 
-    // used already, keep going
-    if(_sequence[i].pitch > 0)
-      continue;
+        // we don't need to add anything, so mark it as complete
+        added = true;
+        continue;
 
-    // free slot. use it
-    _sequence[i].pitch = pitch;
-    _sequence[i].velocity = velocity;
-    _sequence[i].step = pos;
+      }
 
-    // no need to continue
-    return;
+      // make sure there already isn't a note off at this step
+      if(existing_off && velocity == 0)
+      {
+        // we don't need to add anything, so mark it as complete
+        added = true;
+        continue;
+      }
+
+      // free slot. use it
+      _sequence[i].channel = channel;
+      _sequence[i].pitch = pitch;
+      _sequence[i].velocity = velocity;
+      _sequence[i].step = position;
+
+      // send midi note if the callback is set
+      if(_midi_cb)
+        _midi_cb(channel, velocity > 0 ? 0x9 : 0x8, pitch, velocity);
+
+      // mark this as the appropriate message
+      if(velocity > 0)
+      {
+        existing_on = true;
+        toggle_note = i;
+      }
+      else
+      {
+        existing_off = true;
+      }
+
+      // mark as added
+      added = true;
+
+    }
 
   }
 
@@ -381,6 +466,7 @@ void FifteenStep::_init(int memory)
 {
 
   _next_beat = 0;
+  _next_clock = 0;
   _position = 0;
   _shuffle = 0;
   _sequence_size = memory / sizeof(FifteenStepNote);
@@ -446,58 +532,6 @@ int FifteenStep::_quantizedPosition()
 
 }
 
-// _cleanup
-//
-// Resets any set notes that don't have note on messages
-// to the default note state. This allows their slots
-// to be reused by new notes. This method also cleans up
-// any notes that are outside of the current step range.
-//
-// @access private
-// @return void
-//
-void FifteenStep::_cleanup()
-{
-
-  int i;
-  byte pitches[16];
-
-  // set up pitch defaults
-  for(i=0; i < 16; ++i)
-    pitches[i] = 0x0;
-
-  // loop through the sequence and mark notes that have note ons
-  for(i=0; i < _sequence_size; ++i)
-  {
-
-    // reset any steps that are over the current step count
-    if(_sequence[i].step >= _steps)
-      _sequence[i] = DEFAULT_NOTE;
-
-    // ignore note offs
-    if(_sequence[i].velocity == 0)
-      continue;
-
-    // flip the bit for the current pitch
-    pitches[_sequence[i].pitch / 8] |= 1 << (_sequence[i].pitch % 8);
-
-  }
-
-  // clear any pitches that don't have note ons
-  for(i=0; i < _sequence_size; ++i)
-  {
-
-    // if pitch has a note on, move forward
-    if((pitches[_sequence[i].pitch / 8] >> (_sequence[i].pitch % 8)) & 1)
-      continue;
-
-    // clear notes if there are no note ons
-    _sequence[i] = DEFAULT_NOTE;
-
-  }
-
-}
-
 // _step
 //
 // Moves _position forward by one step, calls the
@@ -520,13 +554,34 @@ void FifteenStep::_step()
   if(_position >= _steps)
     _position = 0;
 
-  // trigger next set of notes
-  _triggerNotes();
-
   // tell the callback where we are
   // if it has been set by the sketch
   if(_step_cb)
     _step_cb(_position, last);
+
+  // trigger next set of notes
+  _triggerNotes();
+
+}
+
+// _tick
+//
+// Calls the user defined MIDI callback with
+// the midi clock message
+//
+// @access private
+// @return void
+//
+
+void FifteenStep::_tick()
+{
+
+  // bail if the midi callback isn't set
+  if(! _midi_cb)
+    return;
+
+  // tick
+  _midi_cb(0x0, 0xF8, 0x0, 0x0);
 
 }
 
@@ -542,25 +597,59 @@ void FifteenStep::_step()
 void FifteenStep::_triggerNotes()
 {
 
+  int i;
+
   // bail if the midi callback isn't set
   if(! _midi_cb)
     return;
 
-  // loop through the sequence and trigger notes at the current position
-  for(int i=0; i < _sequence_size; ++i)
+  // loop through the sequence and trigger note offs at the current position.
+  // they should be sent first.
+  for(i=0; i < _sequence_size; ++i)
   {
 
     // ignore if it's not the current position
     if(_sequence[i].step != _position)
       continue;
 
-    // if this position is in the default state, ignore it
-    if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0)
+    // ignore if not a note off for this loop
+    if(_sequence[i].velocity > 0)
       continue;
 
-    // send values to callback
+    // if this position is in the default state, ignore it
+    if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0 && _sequence[i].step == 0)
+      continue;
+
+    // send value to callback
     _midi_cb(
-      _sequence[i].velocity > 0 ? 0x9 : 0x8,
+      _sequence[i].channel,
+      0x8,
+      _sequence[i].pitch,
+      _sequence[i].velocity
+    );
+
+  }
+
+  // loop through the sequence again and trigger note ons at the current position
+  for(i=0; i < _sequence_size; ++i)
+  {
+
+    // ignore if it's not the current position
+    if(_sequence[i].step != _position)
+      continue;
+
+    // ignore if not a note off for this loop
+    if(_sequence[i].velocity == 0)
+      continue;
+
+    // if this position is in the default state, ignore it
+    if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0 && _sequence[i].step == 0)
+      continue;
+
+    // send value to callback
+    _midi_cb(
+      _sequence[i].channel,
+      0x9,
       _sequence[i].pitch,
       _sequence[i].velocity
     );
