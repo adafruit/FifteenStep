@@ -157,6 +157,12 @@ void FifteenStep::setTempo(int tempo)
   // tempo in beats per minute
   _tempo = tempo;
 
+  if(_tempo < 0)
+    _tempo = 0;
+
+  if(_tempo > FS_MAX_TEMPO)
+    _tempo = FS_MAX_TEMPO;
+
   // 60 seconds / bpm / 4 sixteeth notes per beat
   // gives you the value of a sixteenth note
   _sixteenth = 60000L / _tempo / 4;
@@ -210,6 +216,33 @@ void FifteenStep::setSteps(int steps)
 
 }
 
+// increaseTempo
+//
+// Allows user to dynamically increase the tempo amount
+// until the max tempo has been reached
+//
+// @access public
+// @return void
+//
+void FifteenStep::increaseTempo()
+{
+  setTempo(_tempo + 1);
+}
+
+// decreaseTempo
+//
+// Allows user to dynamically decrease the tempo
+// amount until the minimum (0) tempo has
+// been reached.
+//
+// @access public
+// @return void
+//
+void FifteenStep::decreaseTempo()
+{
+  setTempo(_tempo - 1);
+}
+
 // increaseShuffle
 //
 // Allows user to dynamically increase the shuffle
@@ -224,13 +257,13 @@ void FifteenStep::increaseShuffle()
   // grab current shuffle division
   unsigned long div = _shuffleDivision();
 
-  // make sure the next value doesn't
-  // push the note past the next one
-  if(_sixteenth <= (_shuffle + div))
-    return;
-
   // we're safe, increase by division
   _shuffle += div;
+
+  // make sure the next value doesn't
+  // push the note past the next one
+  if(_sixteenth <= _shuffle)
+    _shuffle = _sixteenth - div;
 
 }
 
@@ -248,14 +281,14 @@ void FifteenStep::decreaseShuffle()
 
   // grab current shuffle division
   unsigned long div = _shuffleDivision();
+  unsigned long previous = _shuffle;
 
-  // make sure the next value doesn't
-  // push the shuffle value negative
-  if(0 > (_shuffle - div))
-    return;
-
-  // we're safe, decrease by division
+  // decrease by division
   _shuffle -= div;
+
+  // make sure we stop at zero
+  if(previous > _shuffle)
+    _shuffle = 0;
 
 }
 
@@ -428,10 +461,6 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
       _sequence[i].velocity = velocity;
       _sequence[i].step = position;
 
-      // send midi note if the callback is set
-      if(_midi_cb)
-        _midi_cb(channel, velocity > 0 ? 0x9 : 0x8, pitch, velocity);
-
       // mark this as the appropriate message
       if(velocity > 0)
       {
@@ -450,6 +479,44 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 
   }
 
+}
+
+// pause
+//
+// Pauses and unpauses the sequencer at
+// the current position
+//
+// @access public
+// @return void
+//
+void FifteenStep::pause()
+{
+  _running = _running ? false : true;
+}
+
+// start
+//
+// Starts sequencer at position 0
+//
+// @access public
+// @return void
+//
+void FifteenStep::start()
+{
+  _position = 0;
+  _running = true;
+}
+
+// stop
+//
+// Stops sequencer at current position
+//
+// @access public
+// @return void
+//
+void FifteenStep::stop()
+{
+  _running = false;
 }
 
 // panic
@@ -549,17 +616,14 @@ void FifteenStep::_resetSequence()
 int FifteenStep::_quantizedPosition()
 {
 
+  if(_shuffle > 0)
+    return _position;
+
   // what's the time?
   unsigned long now = millis();
 
   // calculate value of 32nd note
   unsigned long thirty_second = _sixteenth / 2;
-
-  // add or subtract shuffle if needed
-  if((_position % 2) != 0)
-    thirty_second -= (_shuffle / 2);
-  else
-    thirty_second += (_shuffle / 2);
 
   // use current position if below middle point
   if(now <= (_next_beat - thirty_second))

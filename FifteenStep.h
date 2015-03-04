@@ -16,6 +16,7 @@
 #define FS_DEFAULT_TEMPO 120
 #define FS_DEFAULT_STEPS 16
 #define FS_DEFAULT_MEMORY 512
+#define FS_MAX_TEMPO 250
 #define FS_MAX_STEPS 256
 
 // MIDIcallback
@@ -73,9 +74,14 @@ class FifteenStep
     void  begin(int tempo, int steps);
     void  begin(int tempo, int steps, int polyphony);
     void  run();
+    void  pause();
+    void  start();
+    void  stop();
     void  panic();
     void  setTempo(int tempo);
     void  setSteps(int steps);
+    void  increaseTempo();
+    void  decreaseTempo();
     void  increaseShuffle();
     void  decreaseShuffle();
     void  setMidiHandler(MIDIcallback cb);
