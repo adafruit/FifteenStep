@@ -122,22 +122,18 @@ void FifteenStep::run()
     _next_clock = now + _clock;
   }
 
-  // step if it's time
-  if(now >= _next_beat)
-  {
+  // only step if it's time
+  if(now < _next_beat)
+    return;
 
-    // advance and send notes
-    _step();
+  // advance and send notes
+  _step();
 
-    // add the length of a sixteenth note to now
-    // so we know when to trigger the next step
-    _next_beat = now + _sixteenth;
-
-    // add shuffle offset to next beat if odd step
-    if((_position % 2) != 0)
-      _next_beat += _shuffle;
-
-  }
+  // add shuffle offset to next beat if odd step
+  if((_position % 2) != 0)
+    _next_beat = now + _sixteenth + _shuffle;
+  else
+    _next_beat = now + _sixteenth - _shuffle;
 
 }
 
