@@ -222,7 +222,7 @@ void FifteenStep::setSteps(int steps)
 //
 void FifteenStep::increaseTempo()
 {
-  setTempo(_tempo + 1);
+  setTempo(_tempo + 5);
 }
 
 // decreaseTempo
@@ -236,7 +236,7 @@ void FifteenStep::increaseTempo()
 //
 void FifteenStep::decreaseTempo()
 {
-  setTempo(_tempo - 1);
+  setTempo(_tempo - 5);
 }
 
 // increaseShuffle
@@ -582,9 +582,9 @@ void FifteenStep::_init(int memory)
 //
 unsigned long FifteenStep::_shuffleDivision()
 {
-  // split the 16th into 8 parts
+  // split the 16th into 16 parts
   // so user can change the shuffle
-  return _sixteenth / 8;
+  return _sixteenth / 16;
 }
 
 // _resetSequence
