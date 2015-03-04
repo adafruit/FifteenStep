@@ -110,9 +110,11 @@ void FifteenStep::begin(int tempo, int steps)
 void FifteenStep::run()
 {
 
+  if(! _running)
+    return;
+
   // what's the time?
   unsigned long now = millis(); // it's time to get ill.
-
 
   if(now >= _next_clock) {
     _tick();
@@ -318,6 +320,9 @@ void FifteenStep::setStepHandler(StepCallback cb)
 void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 {
 
+  if(! _running)
+    return;
+
   int i = 0;
   int position = _quantizedPosition();
   bool existing_on = false;
@@ -444,6 +449,38 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 
 }
 
+// panic
+//
+// Turns all notes off and resets sequence
+//
+// @access private
+// @return void
+//
+void FifteenStep::panic()
+{
+
+  // set sequence to default note value
+  for(int i=0; i < _sequence_size; ++i)
+  {
+
+    // send note off for pitch if callback is set
+    if(_midi_cb)
+    {
+      _midi_cb(
+        _sequence[i].channel,
+        0x8,
+        _sequence[i].pitch,
+        0
+      );
+    }
+
+    // reset to default
+    _sequence[i] = DEFAULT_NOTE;
+
+  }
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //                            PRIVATE METHODS                                //
@@ -465,6 +502,7 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 void FifteenStep::_init(int memory)
 {
 
+  _running = true;
   _next_beat = 0;
   _next_clock = 0;
   _position = 0;
@@ -572,7 +610,6 @@ void FifteenStep::_step()
 // @access private
 // @return void
 //
-
 void FifteenStep::_tick()
 {
 

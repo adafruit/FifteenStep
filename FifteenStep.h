@@ -73,6 +73,7 @@ class FifteenStep
     void  begin(int tempo, int steps);
     void  begin(int tempo, int steps, int polyphony);
     void  run();
+    void  panic();
     void  setTempo(int tempo);
     void  setSteps(int steps);
     void  increaseShuffle();
@@ -84,6 +85,7 @@ class FifteenStep
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
     FifteenStepNote*  _sequence;
+    bool              _running;
     int               _sequence_size;
     int               _tempo;
     byte              _steps;
