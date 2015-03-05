@@ -129,8 +129,8 @@ void FifteenStep::run()
   // advance and send notes
   _step();
 
-  // add shuffle offset to next beat if odd step
-  if((_position % 2) != 0)
+  // add shuffle offset to next beat if needed
+  if((_position % 2) == 0)
     _next_beat = now + _sixteenth + _shuffle;
   else
     _next_beat = now + _sixteenth - _shuffle;
@@ -153,9 +153,11 @@ void FifteenStep::setTempo(int tempo)
   // tempo in beats per minute
   _tempo = tempo;
 
-  if(_tempo < 0)
-    _tempo = 0;
+  // don't go past the minimum tempo
+  if(_tempo < FS_MIN_TEMPO)
+    _tempo = FS_MIN_TEMPO;
 
+  // don't go past the maximum tempo
   if(_tempo > FS_MAX_TEMPO)
     _tempo = FS_MAX_TEMPO;
 
@@ -400,7 +402,7 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
           existing_off = true;
 
         }
-        else
+        else // no note on
         {
           // this is the first on at this step
           existing_on = true;
@@ -409,10 +411,10 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
         }
 
       }
-      else
+      else // this is a note off
       {
 
-        // if there is already a note off at this step, we can reuse this slot.
+        // if there is already a note off at this step, we can free this slot.
         // if not, then mark this as the existing off note
         if(existing_off)
           _sequence[i] = DEFAULT_NOTE;
@@ -742,7 +744,7 @@ void FifteenStep::_triggerNotes()
     if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0 && _sequence[i].step == 0)
       continue;
 
-    // send value to callback
+    // send note off values to callback
     _midi_cb(
       _sequence[i].channel,
       0x8,
@@ -768,7 +770,7 @@ void FifteenStep::_triggerNotes()
     if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0 && _sequence[i].step == 0)
       continue;
 
-    // send value to callback
+    // send note on values to callback
     _midi_cb(
       _sequence[i].channel,
       0x9,

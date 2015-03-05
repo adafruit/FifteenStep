@@ -1,3 +1,24 @@
+// ---------------------------------------------------------------------------
+//
+// neo_mpr121.ino
+//
+// A MIDI sequencer example using two chained NeoPixel sticks, a MPR121
+// capacitive touch breakout, and an Arduino Micro (or Leonardo).
+//
+// 2x NeoPixel Sticks: https://www.adafruit.com/product/1426
+// 1x MPR121 breakout: https://www.adafruit.com/products/1982
+// 1x Arduino Micro: https://www.adafruit.com/product/1086
+//
+// Required dependencies:
+// Adafruit NeoPixel Library: https://github.com/adafruit/Adafruit_NeoPixel
+// Adafruit MPR121 Library: https://github.com/adafruit/Adafruit_MPR121_Library
+// arcore: https://github.com/rkistner/arcore
+//
+// Author: Todd Treece <todd@uniontownlabs.org>
+// Copyright: (c) 2015 Adafruit Industries
+// License: GNU GPLv3
+//
+// ---------------------------------------------------------------------------
 #include "FifteenStep.h"
 #include "Adafruit_NeoPixel.h"
 #include "Wire.h"
@@ -23,9 +44,12 @@ bool record_mode = true;
 
 // set command states to off by default
 bool command_mode = false;
+bool tempo_mode = false;
+bool shuffle_mode = false;
 bool pitch_mode = false;
 bool velocity_mode = false;
 bool channel_mode = false;
+bool step_mode = false;
 
 // keep pointers for selected buttons to operate
 // on when in note and velocity mode
@@ -114,47 +138,71 @@ void handle_note() {
 // allow user to select which command mode to enter
 void handle_command() {
 
-  switch(currtouched) {
+  // if we aren't in one of the general
+  // command modes, we need to select a command
+  if(! mode_selected()) {
+    select_mode();
+    return;
+  }
 
-    case 0x1:
-      seq.decreaseTempo();
-      break;
-    case 0x2:
+  // tempo and shuffle are handled below
+  if(!tempo_mode && !shuffle_mode) {
+    handle_change();
+    return;
+  }
+
+  // increase tempo or shuffle
+  if(currtouched == 0x2) {
+
+    if(tempo_mode)
       seq.increaseTempo();
-      break;
-    case 0x4:
-      seq.decreaseShuffle();
-      break;
-    case 0x8:
+    else if(shuffle_mode)
       seq.increaseShuffle();
-      break;
-    case 0x10:
-      // decrease channel number
-      channel = channel > 0 ? channel - 1 : 0;
-      show_range(step, channel + 1, 128, 128, 128);
-      break;
-    case 0x20:
-      // increase channel number
-      channel = channel < 16 ? channel + 1 : 15;
-      show_range(channel, channel + 1, 128, 128, 128);
-      break;
+
+  } else if(currtouched == 0x1) {
+
+    if(tempo_mode)
+      seq.decreaseTempo();
+    else if(shuffle_mode)
+      seq.decreaseShuffle();
+
   }
 
 }
 
-// allow user to modify note pitches
-void handle_pitch_change() {
-  // call common handler
-  change_pitch_or_velocity();
+// select which mode to enter
+void select_mode() {
+
+  // switch pads 1-6
+  switch(currtouched) {
+
+    case 0x1:
+      tempo_mode = true;
+      break;
+    case 0x2:
+      shuffle_mode = true;
+      break;
+    case 0x4:
+      position_selected = true;
+      step_mode = true;
+      break;
+    case 0x8:
+      position_selected = true;
+      channel_mode = true;
+      break;
+    case 0x10:
+      pitch_mode = true;
+      break;
+    case 0x20:
+      velocity_mode = true;
+      break;
+
+  }
+
 }
 
-void handle_velocity_change() {
-  // call common handler
-  change_pitch_or_velocity();
-}
-
-// common method for changing pitch and velocity values
-void change_pitch_or_velocity(int[] &type) {
+// pass the appropriate values to the change value helper
+void handle_change() {
 
   // no button index selected, wait until it has
   // been selected before changing values
@@ -163,29 +211,37 @@ void change_pitch_or_velocity(int[] &type) {
     return;
   }
 
-  // stash last value
-  int last = type[mode_position];
-  byte[] rgb = {0,0,0};
+  // set up values to increment or decrement
+  if(pitch_mode)
+    change_value(pitch[mode_position], 127, 0, 64, 0);
+  else if(velocity_mode)
+    change_value(vel[mode_position], 127, 0, 0, 64);
+  else if(channel_mode)
+    change_value(channel, 15, 0, 32, 32);
+  else if(step_mode)
+    change_value(steps, 15, 32, 0, 32);
+
+}
+
+// common method for increasing or decreasing values
+void change_value(int &current, int max_val, byte r, byte g, byte b) {
+
+  int last = current;
 
   // increasing or decreasing value?
   if(currtouched == 0x1)
-    type[mode_position] = type[mode_position] > 0 ? type[mode_position] - 1 : 0;
+    current = current > 0 ? current - 1 : 0;
   else if(currtouched == 0x2)
-    type[mode_position] = type[mode_position] < 127 ? type[mode_position] + 1 : 127;
+    current = current < max_val ? current + 1 : max_val;
 
-  // preview change
-  if(last != type[mode_position])
+  // preview  midi changes
+  if(last != current && (pitch_mode || velocity_mode))
     midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
 
-  if(type == vel)
-    rgb = {0,0,64};
-  else
-    rgb = {0,64,0};
-
-  // update display
-  int display = map(type[mode_position], 0, 127, 0, LEDS);
+  // update leds
+  int display = map(current, 0, max_val, 0, LEDS);
   flash(0,0,0);
-  show_range(0, display_velocity, rgb[0], rgb[1], rgb[2]);
+  show_range(0, display, r, g, b);
 
 }
 
@@ -200,7 +256,7 @@ void change_pitch_or_velocity(int[] &type) {
 void step(int current, int last) {
 
   // if we are in a command mode, flash command
-  if(mode_active()) {
+  if(command_mode) {
     mode_flash(current);
     return;
   }
@@ -242,23 +298,29 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // handles flashing for the different mode states
-void mode_flash(int *current) {
+void mode_flash(int current) {
 
   // bail if we don't need to flash
-  if(command_mode && position_selected)
+  if(position_selected)
     return;
 
-  byte[] rgb = {0,0,0};
+  byte rgb[] = {0,0,0};
 
   // set colors for modes
-  else if(pitch_mode)
-    rgb = {0,64,0};
-  else if(velocity_mode)
-    rgb = {0,0,64};
-  else if(channel_mode)
-    rgb = {32,0,32};
-  else
-    rgb = {64,0,0};
+  if(pitch_mode) {
+    rgb[1] = 64;
+  } else if(velocity_mode) {
+    rgb[2] = 64;
+  } else if(tempo_mode) {
+    rgb[0] = 32;
+    rgb[1] = 32;
+    rgb[2] = 32;
+  } else if(tempo_mode) {
+    rgb[0] = 32;
+    rgb[1] = 32;
+  } else {
+    rgb[0] = 64;
+  }
 
   // LEDs on when it's an even step
   if((current % 2) == 0)
@@ -268,9 +330,9 @@ void mode_flash(int *current) {
 
 }
 
-void note_flash(int *current) {
+void note_flash(int current) {
 
-  byte[] rgb = {0,0,0};
+  byte rgb[] = {0,0,0};
 
   // make sure we stay within
   current = current % LEDS;
@@ -288,7 +350,7 @@ void note_flash(int *current) {
       rgb[2] = 255;
   } else {
     // dim blue sixteenths
-    b = 64;
+    rgb[2] = 64;
   }
 
   // highlight note
@@ -333,35 +395,26 @@ void readButtons() {
       seq.panic();
       break;
 
-    case 0x12: // pause. pads 2,4
-      seq.pause();
-      break;
-
     case 0x3: // command mode. pads 1,2
       clear_modes();
       command_mode = command_mode ? false : true;
       break;
 
-    case 0x6: // note mode. pads 2,3
-      clear_modes();
-      pitch_mode = pitch_mode ? false : true;
+    case 0x18: // toggle record mode. pads 4,5
+      record_mode = record_mode ? false : true;
       break;
 
-    case 0xC: // velocity mode. pads 3,4
-      clear_modes();
-      velocity_mode = velocity_mode ? false : true;
-      break;
-
-    case 0x30: // shuffle mode. pads 4,5
-      clear_modes();
-      channel_mode = channel_mode ? false : true;
+    case 0x30: // pause toggle. pads 5,6
+      seq.pause();
       break;
 
     default:
       // if it's not a command pattern, call route
-      // to send it to the proper handler
-      route();
-      break;
+      // it to the proper handler
+      if(command_mode)
+        handle_command();
+      else
+        handle_note();
 
   }
 
@@ -370,31 +423,15 @@ void readButtons() {
 
 }
 
-// route the presses to the proper handlers
-void route() {
-
-  if(command_mode)
-    handle_command();
-  else if(pitch_mode)
-    handle_pitch_change();
-  else if(velocity_mode)
-    handle_velocity_change();
-  else
-    handle_note();
-
-}
-
 // get the index of the pressed button. this is used by
 // the velocity and note modes to tell which button to change
 void get_position() {
 
   for(int i=0; i < BUTTONS; i++) {
-
     if ( (currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
       mode_position = i;
       position_selected = true;
     }
-
   }
 
 }
@@ -404,9 +441,11 @@ void clear_modes() {
 
   // turn off all modes
   channel_mode = false;
-  command_mode = false;
   velocity_mode = false;
   pitch_mode = false;
+  step_mode = false;
+  tempo_mode = false;
+  shuffle_mode = false;
 
   // reset mode position
   mode_position = 0;
@@ -417,10 +456,13 @@ void clear_modes() {
 
 }
 
-// check if a command mode is active
-bool mode_active() {
+// check if we have selected a command mode
+bool mode_selected() {
 
-  if(command_mode || pitch_mode || velocity_mode || channel_mode)
+  if(! command_mode)
+    return false;
+
+  if(channel_mode || velocity_mode || pitch_mode || step_mode || tempo_mode || shuffle_mode)
     return true;
 
   return false;
