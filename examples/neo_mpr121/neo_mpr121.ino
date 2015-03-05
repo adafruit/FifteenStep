@@ -59,7 +59,7 @@ bool position_selected = false;
 // prime dynamic values
 int channel = 0;
 int pitch[] = {36, 38, 42, 46, 44, 55};
-int vel[] = {80, 80, 80, 80, 40, 20};
+int vel[] = {100, 80, 80, 80, 40, 20};
 int steps = 16;
 
 void setup() {
@@ -152,14 +152,14 @@ void handle_command() {
   }
 
   // increase tempo or shuffle
-  if(currtouched == 0x2) {
+  if(currtouched == 0x20) {
 
     if(tempo_mode)
       seq.increaseTempo();
     else if(shuffle_mode)
       seq.increaseShuffle();
 
-  } else if(currtouched == 0x1) {
+  } else if(currtouched == 0x10) {
 
     if(tempo_mode)
       seq.decreaseTempo();
@@ -177,10 +177,12 @@ void select_mode() {
   switch(currtouched) {
 
     case 0x1:
-      tempo_mode = true;
+      if(lasttouched != 0x3)
+        tempo_mode = true;
       break;
     case 0x2:
-      shuffle_mode = true;
+      if(lasttouched != 0x3)
+        shuffle_mode = true;
       break;
     case 0x4:
       position_selected = true;
@@ -211,37 +213,61 @@ void handle_change() {
     return;
   }
 
+  byte rgb[] = {0,0,0};
+  int display;
+
   // set up values to increment or decrement
-  if(pitch_mode)
-    change_value(pitch[mode_position], 127, 0, 64, 0);
-  else if(velocity_mode)
-    change_value(vel[mode_position], 127, 0, 0, 64);
-  else if(channel_mode)
-    change_value(channel, 15, 0, 32, 32);
-  else if(step_mode)
-    change_value(steps, 15, 32, 0, 32);
+  if(pitch_mode) {
+
+    int last = pitch[mode_position];
+    change_value(pitch[mode_position], 127);
+    display = map(pitch[mode_position], 0, 127, 0, LEDS);
+    rgb[1] = 64;
+
+    if(last != pitch[mode_position])
+      midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
+
+  } else if(velocity_mode) {
+
+    int last = vel[mode_position];
+    change_value(vel[mode_position], 127);
+    display = map(vel[mode_position], 0, 127, 0, LEDS);
+    rgb[2] = 64;
+
+    if(last != vel[mode_position])
+      midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
+
+  } else if(channel_mode) {
+    change_value(channel, 15);
+    display = map(channel, 0, 15, 0, LEDS);
+    rgb[1] = 32;
+    rgb[2] = 32;
+  } else if(step_mode) {
+    change_value(steps, FS_MAX_STEPS);
+    seq.setSteps(steps);
+    display = steps;
+    rgb[0] = 32;
+    rgb[2] = 32;
+  }
+
+  if(display % LEDS != 0)
+    display = display % LEDS;
+
+  flash(0,0,0);
+  show_range(0, display, rgb[0], rgb[1], rgb[2]);
 
 }
 
 // common method for increasing or decreasing values
-void change_value(int &current, int max_val, byte r, byte g, byte b) {
-
-  int last = current;
+int change_value(int &current, int max_val) {
 
   // increasing or decreasing value?
-  if(currtouched == 0x1)
+  if(currtouched == 0x10)
     current = current > 0 ? current - 1 : 0;
-  else if(currtouched == 0x2)
+  else if(currtouched == 0x20)
     current = current < max_val ? current + 1 : max_val;
 
-  // preview  midi changes
-  if(last != current && (pitch_mode || velocity_mode))
-    midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
-
-  // update leds
-  int display = map(current, 0, max_val, 0, LEDS);
-  flash(0,0,0);
-  show_range(0, display, r, g, b);
+  return current;
 
 }
 
@@ -315,7 +341,7 @@ void mode_flash(int current) {
     rgb[0] = 32;
     rgb[1] = 32;
     rgb[2] = 32;
-  } else if(tempo_mode) {
+  } else if(shuffle_mode) {
     rgb[0] = 32;
     rgb[1] = 32;
   } else {
@@ -334,11 +360,11 @@ void note_flash(int current) {
 
   byte rgb[] = {0,0,0};
 
-  // make sure we stay within
-  current = current % LEDS;
-
   // all LEDs off
   flash(0, 0, 0);
+
+  // make sure we stay within the led count
+  current = current % LEDS;
 
   // highlight quarter notes
   if(current % 4 == 0) {
