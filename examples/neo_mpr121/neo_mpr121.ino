@@ -239,7 +239,7 @@ void handle_change() {
 
   } else if(channel_mode) {
     change_value(channel, 15);
-    display = map(channel, 0, 15, 0, LEDS);
+    display = channel + 1;
     rgb[1] = 32;
     rgb[2] = 32;
   } else if(step_mode) {
