@@ -76,7 +76,7 @@ void setup() {
   pixels.setBrightness(80);
 
   // start sequencer and set callbacks
-  seq.begin(TEMPO, 16);
+  seq.begin(TEMPO, steps);
   seq.setMidiHandler(midi);
   seq.setStepHandler(step);
 

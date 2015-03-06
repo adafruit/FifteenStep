@@ -16,7 +16,8 @@ to generate sound using some other form of synthesis.
 * Tempo can be changed on the fly
 * The loop point can be changed on the fly
 * Shuffle can be added or subtracted on the fly
-* Start, Stop, Pause the sequencer
+* MIDI channel can be set for each note, so you can use the sequencer with multiple instruments on different channels
+* Start, stop, and pause the sequencer
 * MIDI clock out
 * MIDI song position out
 
