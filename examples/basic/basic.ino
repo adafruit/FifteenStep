@@ -59,6 +59,9 @@ void loop() {
 
   }
 
+  // save button state
+  button_last = button;
+
   // this is needed to keep the sequencer
   // running. there are other methods for
   // start, stop, and pausing the steps
