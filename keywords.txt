@@ -13,7 +13,6 @@ start			KEYWORD2
 stop			KEYWORD2
 pause			KEYWORD2
 panic			KEYWORD2
-pause			KEYWORD2
 setNote			KEYWORD2
 setTempo		KEYWORD2
 setSteps		KEYWORD2

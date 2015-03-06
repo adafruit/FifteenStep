@@ -345,6 +345,9 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // step position. If there is already a note on value at this
 // position, the note will be turned off.
 //
+// TODO: this function could/should probably be simplified by
+// sorting first. maybe an in-place merge sort?
+//
 // @access public
 // @param note on or off message
 // @param pitch of note
@@ -354,6 +357,7 @@ void FifteenStep::setStepHandler(StepCallback cb)
 void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
 {
 
+  // don't save notes if the sequencer isn't running
   if(! _running)
     return;
 
@@ -714,6 +718,10 @@ void FifteenStep::_loopPosition()
 // Calls the user defined MIDI callback with
 // all of the note on and off messages at the
 // current step position.
+//
+// TODO: simplify so it only has to loop through
+// the sequence once. this probably will be fixed
+// once setNote is simplified.
 //
 // @access private
 // @return void

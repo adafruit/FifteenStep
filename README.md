@@ -4,10 +4,8 @@ The goal of this library is to create a general purpose sequencer
 that can be used with anything that can handle MIDI info. The library
 provides a way for you to define callbacks that will be called whenever
 MIDI data needs to be handled. This allows you to send MIDI data over standard
-MIDI cables, through USB MIDI, or any other method you can dream up. It's
-up to you.
-
-Why is it called FifteenStep? Well... naming things is hard.
+MIDI cables, through USB MIDI, or even use the MIDI data from the sequencer
+to generate sound using some other form of synthesis.
 
 ## Features
 
@@ -24,8 +22,11 @@ Why is it called FifteenStep? Well... naming things is hard.
 
 ## Contributing
 
-In lieu of a formal styleguide, take care to maintain the existing coding style. Please test your code, and feel free
-to send a pull request explaining your changes when you are ready.
+We would love to include your enhancements or bug fixes! In lieu of a
+formal styleguide, please take care to maintain the existing coding style.
+Please test your code before sending a pull request. It would be
+very helpful if you include a detailed explination of your changes in the
+pull request.
 
 ## License
 
