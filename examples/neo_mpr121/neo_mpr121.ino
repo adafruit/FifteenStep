@@ -303,12 +303,11 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
   // init combined byte
   byte combined = command;
 
-  // shift if necessary. this is specific to the midi usb spec
-  if(command < 16)
-    combined = command << 4;
-
-  // add channel. this is specific to the midi usb spec
-  combined |= channel;
+  // shift if necessary and add MIDI channel
+  if(combined < 128) {
+    combined <<= 4;
+    combined |= channel;
+  }
 
   // send midi message
   MIDIEvent event = {command, combined, arg1, arg2};
