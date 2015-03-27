@@ -345,9 +345,6 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // step position. If there is already a note on value at this
 // position, the note will be turned off.
 //
-// TODO: this function could/should probably be simplified by
-// sorting first. maybe an in-place merge sort?
-//
 // @access public
 // @param note on or off message
 // @param pitch of note
@@ -361,15 +358,10 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
   if(! _running)
     return;
 
-  int i = 0;
   int position = _quantizedPosition();
-  bool existing_on = false;
-  bool existing_off = false;
   bool added = false;
-  int toggle_note = 0;
 
-  // find a new slot to use
-  for(i=0; i < _sequence_size; ++i)
+  for(int i=0; i < _sequence_size; ++i)
   {
 
     // used by another pitch, keep going
@@ -388,98 +380,27 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
     if(_sequence[i].pitch == pitch && _sequence[i].step == position && _sequence[i].channel == channel)
     {
 
-      // this is a note on
-      if(_sequence[i].velocity > 0)
-      {
-
-        // check if there's already a note on at this step
-        if(existing_on)
-        {
-
-          // free this one since we don't need two at this step
-          _sequence[i] = DEFAULT_NOTE;
-
-          // turn toggle note off since this step already had a note on
-          _sequence[toggle_note].velocity = 0;
-
-          // now there's an existing off
-          existing_off = true;
-
-        }
-        else // no note on
-        {
-          // this is the first on at this step
-          existing_on = true;
-          // mark the location of this note on so we can toggle it if needed
-          toggle_note = i;
-        }
-
-      }
-      else // this is a note off
-      {
-
-        // if there is already a note off at this step, we can free this slot.
-        // if not, then mark this as the existing off note
-        if(existing_off)
-          _sequence[i] = DEFAULT_NOTE;
-        else
-          existing_off = true;
-
-      }
+      if(velocity > 0 && _sequence[i].velocity > 0)
+        _sequence[i] = DEFAULT_NOTE;
 
     }
 
-    // not a match, but there's a free slot and we haven't saved the new note yet.
+    // use the free slot
     if(_sequence[i].pitch == 0 && _sequence[i].step == 0 && _sequence[i].channel == 0 && !added)
     {
 
-      // make sure there already isn't a note on at this step
-      if(existing_on && velocity > 0)
-      {
-
-        // turn toggle note off since this step already had a note on
-        _sequence[toggle_note].velocity = 0;
-
-        // now there's an existing off
-        existing_off = true;
-
-        // we don't need to add anything, so mark it as complete
-        added = true;
-        continue;
-
-      }
-
-      // make sure there already isn't a note off at this step
-      if(existing_off && velocity == 0)
-      {
-        // we don't need to add anything, so mark it as complete
-        added = true;
-        continue;
-      }
-
-      // free slot. use it
       _sequence[i].channel = channel;
       _sequence[i].pitch = pitch;
       _sequence[i].velocity = velocity;
       _sequence[i].step = position;
 
-      // mark this as the appropriate message
-      if(velocity > 0)
-      {
-        existing_on = true;
-        toggle_note = i;
-      }
-      else
-      {
-        existing_off = true;
-      }
-
-      // mark as added
       added = true;
 
     }
 
   }
+
+  _heapSort();
 
 }
 
@@ -713,15 +634,110 @@ void FifteenStep::_loopPosition()
 
 }
 
+// _heapSort
+//
+// Sort the sequence based on the heapsort algorithm
+//
+// Based on pseudocode found here: http://en.wikipedia.org/wiki/Heapsort
+//
+// @access private
+// @return void
+//
+void FifteenStep::_heapSort()
+{
+
+  int i;
+  FifteenStepNote tmp;
+
+  for(i = _sequence_size / 2; i >= 0; i--)
+    _siftDown(i, _sequence_size - 1);
+
+  for(i = _sequence_size - 1; i >= 1; i--)
+  {
+
+    tmp = _sequence[0];
+    _sequence[0] = _sequence[i];
+    _sequence[i] = tmp;
+
+    _siftDown(0, i - 1);
+
+  }
+
+}
+
+// _siftDown
+//
+// Used by heapsort to shift note positions
+//
+// Based on pseudocode found here: http://en.wikipedia.org/wiki/Heapsort
+//
+// @access private
+// @return void
+//
+void FifteenStep::_siftDown(int root, int bottom)
+{
+
+  int max = root * 2 + 1;
+
+  if(max < bottom)
+    max = _greater(max, max + 1) == max ? max : max + 1;
+  else if(max > bottom)
+    return;
+
+  if(_greater(root, max) == root || _greater(root, max) == -1)
+    return;
+
+  FifteenStepNote tmp = _sequence[root];
+  _sequence[root] = _sequence[max];
+  _sequence[max] = tmp;
+
+  _siftDown(max, bottom);
+
+}
+
+// _greater
+//
+// Used by heapsort to compare two notes so we
+// know where they should be placed in the sorted
+// array. Will return -1 if they are equal
+//
+// @access private
+// @param first position to compare
+// @param second position to compare
+// @return int
+//
+int FifteenStep::_greater(int first, int second)
+{
+
+  if(_sequence[first].velocity > _sequence[second].velocity)
+    return first;
+  else if(_sequence[second].velocity > _sequence[first].velocity)
+    return second;
+
+  if(_sequence[first].pitch > _sequence[second].pitch)
+    return first;
+  else if(_sequence[second].pitch > _sequence[first].pitch)
+    return second;
+
+  if(_sequence[first].step > _sequence[second].step)
+    return first;
+  else if(_sequence[second].step > _sequence[first].step)
+    return second;
+
+  if(_sequence[first].channel > _sequence[second].channel)
+    return first;
+  else if(_sequence[second].channel > _sequence[first].channel)
+    return second;
+
+  return - 1;
+
+}
+
 // _triggerNotes
 //
 // Calls the user defined MIDI callback with
 // all of the note on and off messages at the
 // current step position.
-//
-// TODO: simplify so it only has to loop through
-// the sequence once. this probably will be fixed
-// once setNote is simplified.
 //
 // @access private
 // @return void
@@ -729,49 +745,16 @@ void FifteenStep::_loopPosition()
 void FifteenStep::_triggerNotes()
 {
 
-  int i;
-
   // bail if the midi callback isn't set
   if(! _midi_cb)
     return;
 
-  // loop through the sequence and trigger note offs at the current position.
-  // they should be sent first.
-  for(i=0; i < _sequence_size; ++i)
-  {
-
-    // ignore if it's not the current position
-    if(_sequence[i].step != _position)
-      continue;
-
-    // ignore if not a note off for this loop
-    if(_sequence[i].velocity > 0)
-      continue;
-
-    // if this position is in the default state, ignore it
-    if(_sequence[i].pitch == 0 && _sequence[i].velocity == 0 && _sequence[i].step == 0)
-      continue;
-
-    // send note off values to callback
-    _midi_cb(
-      _sequence[i].channel,
-      0x8,
-      _sequence[i].pitch,
-      _sequence[i].velocity
-    );
-
-  }
-
   // loop through the sequence again and trigger note ons at the current position
-  for(i=0; i < _sequence_size; ++i)
+  for(int i=0; i < _sequence_size; ++i)
   {
 
     // ignore if it's not the current position
     if(_sequence[i].step != _position)
-      continue;
-
-    // ignore if not a note off for this loop
-    if(_sequence[i].velocity == 0)
       continue;
 
     // if this position is in the default state, ignore it
@@ -781,7 +764,7 @@ void FifteenStep::_triggerNotes()
     // send note on values to callback
     _midi_cb(
       _sequence[i].channel,
-      0x9,
+      _sequence[i].velocity > 0 ? 0x9 : 0x8,
       _sequence[i].pitch,
       _sequence[i].velocity
     );

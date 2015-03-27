@@ -104,7 +104,10 @@ class FifteenStep
     unsigned long     _next_clock;
     unsigned long     _shuffleDivision();
     int               _quantizedPosition();
+    int               _greater(int first, int second);
     void              _init(int memory);
+    void              _heapSort();
+    void              _siftDown(int root, int bottom);
     void              _resetSequence();
     void              _loopPosition();
     void              _tick();
