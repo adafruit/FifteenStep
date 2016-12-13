@@ -351,15 +351,20 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // @param velocity of note
 // @return void
 //
-void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
+void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
 {
 
   // don't save notes if the sequencer isn't running
   if(! _running)
     return;
 
-  int position = _quantizedPosition();
+  int position;
   bool added = false;
+
+  if(step == NULL)
+    position = _quantizedPosition();
+  else
+    position = step;
 
   for(int i=0; i < _sequence_size; ++i)
   {

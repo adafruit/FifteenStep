@@ -86,7 +86,7 @@ class FifteenStep
     void  decreaseShuffle();
     void  setMidiHandler(MIDIcallback cb);
     void  setStepHandler(StepCallback cb);
-    void  setNote(byte channel, byte pitch, byte velocity);
+    void  setNote(byte channel, byte pitch, byte velocity, byte step = NULL);
     FifteenStepNote* getSequence();
   private:
     MIDIcallback      _midi_cb;
