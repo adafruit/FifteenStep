@@ -349,6 +349,7 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // @param note on or off message
 // @param pitch of note
 // @param velocity of note
+// @param position in sequence
 // @return void
 //
 void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
@@ -469,9 +470,30 @@ void FifteenStep::panic()
 
 }
 
+// getSequence
+//
+// Returns a pointer to the current sequence
+//
+// @access private
+// @return FifteenStepNote*
+//
 FifteenStepNote* FifteenStep::getSequence()
 {
   return _sequence;
+}
+
+// getPosition
+//
+// Returns the closest 16th note to the
+// present time. This is used to see where to
+// save the new note.
+//
+// @access public
+// @return byte - quantized position
+//
+byte FifteenStep::getPosition()
+{
+  return _quantizedPosition();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
