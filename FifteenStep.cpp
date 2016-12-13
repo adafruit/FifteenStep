@@ -464,6 +464,11 @@ void FifteenStep::panic()
 
 }
 
+FifteenStepNote* FifteenStep::getSequence()
+{
+  return _sequence;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //                            PRIVATE METHODS                                //
