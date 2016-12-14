@@ -360,6 +360,9 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
     return;
 
   int position;
+
+  // this variable allows the loop to track when a note has been added,
+  // but also clears out existing matching notes
   bool added = false;
 
   if(step == NULL)
@@ -367,7 +370,7 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
   else
     position = step;
 
-  for(int i=0; i < _sequence_size; ++i)
+  for(int i = _sequence_size - 1; i >= 0; i--)
   {
 
     // used by another pitch, keep going
@@ -386,8 +389,15 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
     if(_sequence[i].pitch == pitch && _sequence[i].step == position && _sequence[i].channel == channel)
     {
 
-      if(velocity > 0 && _sequence[i].velocity > 0)
+      if(velocity > 0 && _sequence[i].velocity > 0) {
         _sequence[i] = DEFAULT_NOTE;
+        added = true;
+        continue;
+      } else if(velocity == 0 && _sequence[i].velocity == 0) {
+        _sequence[i] = DEFAULT_NOTE;
+        added = true;
+        continue;
+      }
 
     }
 

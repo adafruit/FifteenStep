@@ -33,7 +33,7 @@ int  mode_position = 0;
 bool position_selected = false;
 
  // button polling timer
-unsigned long prevReadTime = 0L;
+unsigned long prevReadTime = 0L; 
 
 // track the current touched buttons
 uint16_t current_touched = 0;

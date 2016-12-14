@@ -71,3 +71,42 @@ void disconnected(void)
 
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 Adafruit_BLEMIDI blemidi(ble);
+
+void bluefruit_init() {
+
+  Serial.print(F("Initializing the Bluefruit LE module: "));
+
+  if(! ble.begin(VERBOSE_MODE)) {
+    error(F("Couldn't find Bluefruit, check wiring?"));
+  }
+  Serial.println( F("OK!") );
+
+  if(FACTORYRESET_ENABLE) {
+    Serial.println(F("Performing a factory reset: "));
+    if(! ble.factoryReset()) {
+      error(F("Couldn't factory reset"));
+    }
+    Serial.println( F("OK!") );
+  }
+
+  ble.echo(false);
+
+  Serial.println("Requesting Bluefruit info:");
+  ble.info();
+
+  ble.setConnectCallback(connected);
+  ble.setDisconnectCallback(disconnected);
+
+  Serial.println(F("Enable MIDI: "));
+  if(! blemidi.begin(true)) {
+    error(F("Could not enable MIDI"));
+  }
+
+  ble.verbose(false);
+
+  Serial.print(F("Waiting for a connection... "));
+  while(! isConnected) {
+    ble.update(500);
+  }
+
+}
