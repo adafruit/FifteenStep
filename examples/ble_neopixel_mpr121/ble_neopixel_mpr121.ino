@@ -37,7 +37,7 @@ Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_
 #define LEDS     16
 #define TEMPO    60
 #define BUTTONS  6
-#define IRQ_PIN  4
+#define IRQ_PIN  A4
 
 // sequencer, neopixel, & mpr121 init
 FifteenStep seq = FifteenStep(1024);
