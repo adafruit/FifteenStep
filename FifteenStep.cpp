@@ -118,7 +118,7 @@ void FifteenStep::run()
 
   // send clock
   if(now >= _next_clock) {
-    _tick();
+    //_tick();
     _next_clock = now + _clock;
   }
 
