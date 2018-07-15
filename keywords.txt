@@ -1,27 +1,27 @@
 #######################################
 # Classes
 #######################################
-FifteenStep		KEYWORD1
-FifteenStepNote		KEYWORD1
+FifteenStep	KEYWORD1
+FifteenStepNote	KEYWORD1
 
 #######################################
 # Functions
 #######################################
-begin			KEYWORD2
-run			KEYWORD2
-start			KEYWORD2
-stop			KEYWORD2
-pause			KEYWORD2
-panic			KEYWORD2
-setNote			KEYWORD2
-setTempo		KEYWORD2
-setSteps		KEYWORD2
-increaseTempo		KEYWORD2
-decreaseTempo		KEYWORD2
-increaseShuffle		KEYWORD2
-decreaseShuffle		KEYWORD2
-setMidiHandler		KEYWORD2
-setStepHandler		KEYWORD2
+begin	KEYWORD2
+run	KEYWORD2
+start	KEYWORD2
+stop	KEYWORD2
+pause	KEYWORD2
+panic	KEYWORD2
+setNote	KEYWORD2
+setTempo	KEYWORD2
+setSteps	KEYWORD2
+increaseTempo	KEYWORD2
+decreaseTempo	KEYWORD2
+increaseShuffle	KEYWORD2
+decreaseShuffle	KEYWORD2
+setMidiHandler	KEYWORD2
+setStepHandler	KEYWORD2
 
 #######################################
 # Constants
@@ -30,6 +30,6 @@ setStepHandler		KEYWORD2
 FS_DEFAULT_TEMPO	LITERAL1
 FS_DEFAULT_STEPS	LITERAL1
 FS_DEFAULT_MEMORY	LITERAL1
-FS_MIN_TEMPO		LITERAL1
-FS_MAX_TEMPO		LITERAL1
-FS_MAX_STEPS		LITERAL1
+FS_MIN_TEMPO	LITERAL1
+FS_MAX_TEMPO	LITERAL1
+FS_MAX_STEPS	LITERAL1
