@@ -114,11 +114,12 @@ void FifteenStep::run()
     return;
 
   // what's the time?
-  unsigned long now = millis(); // it's time to get ill.
+  unsigned long now = millis();
+  // it's time to get ill.
 
   // send clock
   if(now >= _next_clock) {
-    //_tick();
+    _tick();
     _next_clock = now + _clock;
   }
 
@@ -349,19 +350,28 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // @param note on or off message
 // @param pitch of note
 // @param velocity of note
+// @param position in sequence
 // @return void
 //
-void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
+void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
 {
 
   // don't save notes if the sequencer isn't running
   if(! _running)
     return;
 
-  int position = _quantizedPosition();
+  int position;
+
+  // this variable allows the loop to track when a note has been added,
+  // but also clears out existing matching notes
   bool added = false;
 
-  for(int i=0; i < _sequence_size; ++i)
+  if(step == -1)
+    position = _quantizedPosition();
+  else
+    position = step;
+
+  for(int i = _sequence_size - 1; i >= 0; i--)
   {
 
     // used by another pitch, keep going
@@ -380,8 +390,15 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity)
     if(_sequence[i].pitch == pitch && _sequence[i].step == position && _sequence[i].channel == channel)
     {
 
-      if(velocity > 0 && _sequence[i].velocity > 0)
+      if(velocity > 0 && _sequence[i].velocity > 0) {
         _sequence[i] = DEFAULT_NOTE;
+        added = true;
+        continue;
+      } else if(velocity == 0 && _sequence[i].velocity == 0) {
+        _sequence[i] = DEFAULT_NOTE;
+        added = true;
+        continue;
+      }
 
     }
 
@@ -462,6 +479,32 @@ void FifteenStep::panic()
   // clear notes
   _resetSequence();
 
+}
+
+// getSequence
+//
+// Returns a pointer to the current sequence
+//
+// @access private
+// @return FifteenStepNote*
+//
+FifteenStepNote* FifteenStep::getSequence()
+{
+  return _sequence;
+}
+
+// getPosition
+//
+// Returns the closest 16th note to the
+// present time. This is used to see where to
+// save the new note.
+//
+// @access public
+// @return byte - quantized position
+//
+byte FifteenStep::getPosition()
+{
+  return _quantizedPosition();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

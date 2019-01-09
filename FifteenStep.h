@@ -2,12 +2,10 @@
 //
 // FifteenStep.h
 // A generic MIDI sequencer library for Arduino.
-//
-// Author: Todd Treece <todd@uniontownlabs.org>
+// // Author: Todd Treece <todd@uniontownlabs.org>
 // Copyright: (c) 2015 Adafruit Industries
 // License: GNU GPLv3
-//
-// ---------------------------------------------------------------------------
+// // ---------------------------------------------------------------------------
 #ifndef _FifteenStep_h
 #define _FifteenStep_h
 
@@ -87,7 +85,9 @@ class FifteenStep
     void  decreaseShuffle();
     void  setMidiHandler(MIDIcallback cb);
     void  setStepHandler(StepCallback cb);
-    void  setNote(byte channel, byte pitch, byte velocity);
+    void  setNote(byte channel, byte pitch, byte velocity, byte step = -1);
+    byte  getPosition();
+    FifteenStepNote* getSequence();
   private:
     MIDIcallback      _midi_cb;
     StepCallback      _step_cb;
