@@ -1,13 +1,16 @@
 // ---------------------------------------------------------------------------
 //
-// ble_untz.ino // // A MIDI sequencer example using the Adafruit UNTZ // and a Bluefruit Feather.
-// // 1x Feather Bluefruit LE 32u4: https://www.adafruit.com/products/2829
+// ble_untz.ino
+//
+// A MIDI sequencer example using the Adafruit UNTZ and a Bluefruit Feather.
+//
+// 1x Feather Bluefruit LE 32u4: https://www.adafruit.com/products/2829
 // 1x Adafruit UNTZ: https://www.adafruit.com/product/1929
 //
 // Required dependencies:
-// Adafruit Bluefruit Library: https://github.com/adafruit/Adafruit_BluefruitLE_nRF51
-// Adafruit UNTZtrument Library: https://github.com/adafruit/Adafruit_UNTZtrument
-// Adafruit Trellis Library: https://github.com/adafruit/Adafruit_Trellis_Library
+// Adafruit Bluefruit nRF51 Library
+// Adafruit UNTZtrument Library
+// Adafruit Trellis Library
 //
 // Author: Todd Treece <todd@uniontownlabs.org>
 // Copyright: (c) 2015-2016 Adafruit Industries
@@ -15,7 +18,7 @@
 // // ---------------------------------------------------------------------------
 #include "FifteenStep.h"
 
-#define SEQUENCER_MEMORY 512 
+#define SEQUENCER_MEMORY 512
 FifteenStep seq = FifteenStep(SEQUENCER_MEMORY);
 
 // set initial state for dynamic values
