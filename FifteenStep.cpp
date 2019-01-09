@@ -366,7 +366,7 @@ void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
   // but also clears out existing matching notes
   bool added = false;
 
-  if(step == NULL)
+  if(step == -1)
     position = _quantizedPosition();
   else
     position = step;
