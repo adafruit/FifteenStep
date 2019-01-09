@@ -114,11 +114,12 @@ void FifteenStep::run()
     return;
 
   // what's the time?
-  unsigned long now = millis(); // it's time to get ill.
+  unsigned long now = millis();
+  // it's time to get ill.
 
   // send clock
   if(now >= _next_clock) {
-    //_tick();
+    _tick();
     _next_clock = now + _clock;
   }
 
