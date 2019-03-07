@@ -117,24 +117,25 @@ void FifteenStep::run()
   unsigned long now = millis();
   // it's time to get ill.
 
+  // only step if it's time
+  if(now >= _next_beat) {
+    // resync clock to beat
+    _next_clock = _next_beat;
+    // advance and send notes
+    _step();
+
+    // add shuffle offset to next beat if needed
+    if((_position % 2) == 0)
+        _next_beat = now + _sixteenth + _shuffle;
+    else
+        _next_beat = now + _sixteenth - _shuffle;
+  }
+
   // send clock
   if(now >= _next_clock) {
     _tick();
     _next_clock = now + _clock;
   }
-
-  // only step if it's time
-  if(now < _next_beat)
-    return;
-
-  // advance and send notes
-  _step();
-
-  // add shuffle offset to next beat if needed
-  if((_position % 2) == 0)
-    _next_beat = now + _sixteenth + _shuffle;
-  else
-    _next_beat = now + _sixteenth - _shuffle;
 
 }
 
