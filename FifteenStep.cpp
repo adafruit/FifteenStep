@@ -162,13 +162,15 @@ void FifteenStep::setTempo(int tempo)
   if(_tempo > FS_MAX_TEMPO)
     _tempo = FS_MAX_TEMPO;
 
-  // 60 seconds / bpm / 4 sixteeth notes per beat
-  // gives you the value of a sixteenth note
-  _sixteenth = 60000L / _tempo / 4;
-
   // midi clock messages should be sent 24 times
   // for every quarter note
   _clock = 60000L / _tempo / 24;
+
+  // 60 seconds / bpm / 4 sixteeth notes per beat
+  // gives you the value of a sixteenth note
+  // but we calculate it as 6 * _clock to minimize
+  // rounding errors
+  _sixteenth = 6 * _clock;
 
   // grab new shuffle division
   unsigned long div = _shuffleDivision();
