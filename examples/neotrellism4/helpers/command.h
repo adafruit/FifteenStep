@@ -1,25 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
-//                                                                           // //                        COMMAND MODE FUNCTIONS                             //
+//                                                                           //
+//                                                                           //
+//                                                                           COMMAND
+//                                                                           MODE
+//                                                                           FUNCTIONS
+//                                                                           //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef COMMAND_HELPER_H
 #define COMMAND_HELPER_H
 
-#include "callback.h"
 #include "button.h"
+#include "callback.h"
 
 // set the index of the pressed button. this is used by
 // the velocity and note modes to tell which button to change
 void setModePosition() {
 
-  for(uint8_t i=0; i < N_BUTTONS; i++) {
-    if(trellis.justPressed(i)) {
+  for (uint8_t i = 0; i < N_BUTTONS; i++) {
+    if (trellis.justPressed(i)) {
       mode_position = i;
       position_selected = true;
     }
   }
-
 }
 
 void tempoChange() {
@@ -28,11 +32,10 @@ void tempoChange() {
   uint8_t increase = xy2i(1, row);
   uint8_t decrease = xy2i(0, row);
 
-  if(trellis.justPressed(increase))
+  if (trellis.justPressed(increase))
     seq.increaseTempo();
-  else if(trellis.justPressed(decrease))
+  else if (trellis.justPressed(decrease))
     seq.decreaseTempo();
-
 }
 
 void shuffleChange() {
@@ -41,46 +44,41 @@ void shuffleChange() {
   uint8_t increase = xy2i(1, row);
   uint8_t decrease = xy2i(0, row);
 
-  if(trellis.justPressed(increase))
+  if (trellis.justPressed(increase))
     seq.increaseShuffle();
-  else if(trellis.justPressed(decrease))
+  else if (trellis.justPressed(decrease))
     seq.decreaseShuffle();
-
 }
 
 void pitchChange() {
 
-   if(! position_selected) {
-     setModePosition();
-     return;
-   }
+  if (!position_selected) {
+    setModePosition();
+    return;
+  }
 
   int last = pitch[mode_position];
   changeValue(pitch[mode_position], 127);
 
-  if(last != pitch[mode_position])
+  if (last != pitch[mode_position])
     midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
-
 }
 
 void velocityChange() {
 
-   if(! position_selected) {
-     setModePosition();
-     return;
-   }
+  if (!position_selected) {
+    setModePosition();
+    return;
+  }
 
   int last = vel[mode_position];
   changeValue(vel[mode_position], 127);
 
-  if(last != vel[mode_position])
+  if (last != vel[mode_position])
     midi(channel, 0x9, pitch[mode_position], vel[mode_position]);
-
 }
 
-void channelChange() {
-  changeValue(channel, 15);
-}
+void channelChange() { changeValue(channel, 15); }
 
 void stepChange() {
   changeValue(steps, FS_MAX_STEPS);
@@ -104,36 +102,33 @@ void clearModes() {
 
   // clear pixels
   trellis.fill(0);
-
 }
 
 // check if we have selected a command mode
 bool commandMode() {
 
-  if(channel_mode || velocity_mode || pitch_mode || step_mode || tempo_mode || shuffle_mode)
+  if (channel_mode || velocity_mode || pitch_mode || step_mode || tempo_mode ||
+      shuffle_mode)
     return true;
 
   return false;
-
 }
 
 // allow user to select which command mode to enter
 void handleCommand() {
 
-   if(shuffle_mode)
-     shuffleChange();
-   else if(tempo_mode)
-     tempoChange();
-   else if(pitch_mode)
-     pitchChange();
-   else if(velocity_mode)
-     velocityChange();
-   else if(step_mode)
-     stepChange();
-   else if(channel_mode)
-     channelChange();
-
+  if (shuffle_mode)
+    shuffleChange();
+  else if (tempo_mode)
+    tempoChange();
+  else if (pitch_mode)
+    pitchChange();
+  else if (velocity_mode)
+    velocityChange();
+  else if (step_mode)
+    stepChange();
+  else if (channel_mode)
+    channelChange();
 }
-
 
 #endif

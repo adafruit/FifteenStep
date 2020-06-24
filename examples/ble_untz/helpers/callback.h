@@ -17,7 +17,7 @@ void setPlayhead(uint8_t c, bool set);
 // position and last are passed to the callback
 void step(int current, int last) {
 
-  if(commandMode()) {
+  if (commandMode()) {
     untztrument.clear();
     modeDisplay(current);
     untztrument.writeDisplay();
@@ -28,7 +28,6 @@ void step(int current, int last) {
   noteDisplay(current);
   setPlayhead(current % WIDTH, true);
   untztrument.writeDisplay();
-
 }
 
 // the callback that will be called by the sequencer
@@ -39,13 +38,12 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
   byte combined = command;
 
   // shift if necessary and add MIDI channel
-  if(combined < 128) {
+  if (combined < 128) {
     combined <<= 4;
     combined |= channel;
   }
 
   blemidi.send(combined, arg1, arg2);
-
 }
 
 #endif

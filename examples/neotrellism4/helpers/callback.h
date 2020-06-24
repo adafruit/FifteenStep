@@ -17,7 +17,7 @@ void setPlayhead(uint8_t c, bool set);
 // position and last are passed to the callback
 void step(int current, int last) {
 
-  if(commandMode()) {
+  if (commandMode()) {
     trellis.fill(0);
     modeDisplay(current);
     return;
@@ -26,7 +26,6 @@ void step(int current, int last) {
   trellis.fill(0);
   noteDisplay(current);
   setPlayhead(current % WIDTH, true);
-
 }
 
 // the callback that will be called by the sequencer
@@ -38,13 +37,12 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
   trellis.setUSBMIDIchannel(c);
   trellis.setUARTMIDIchannel(c);
 
-  if(command == 0x9)
+  if (command == 0x9)
     trellis.noteOn(arg1, arg2);
-  else if(command == 0x8)
+  else if (command == 0x8)
     trellis.noteOff(arg1, arg2);
   else
     trellis.controlChange(command, arg1);
-
 }
 
 #endif
