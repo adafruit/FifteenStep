@@ -311,7 +311,7 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
   }
 
   // send midi message
-  MIDIEvent event = {command, combined, arg1, arg2};
+  MIDIEventPacket_t event = {command, combined, arg1, arg2};
   MIDIUSB.write(event);
   MIDIUSB.flush();
 
