@@ -19,11 +19,11 @@
 // License: GNU GPLv3
 //
 // ---------------------------------------------------------------------------
+#include <MIDIUSB.h>
 #include "FifteenStep.h"
 #include "Adafruit_NeoPixel.h"
 #include "Wire.h"
 #include "Adafruit_MPR121.h"
-#include "MIDIUSB.h"
 
 #define NEO_PIN  6
 #define LEDS     16
