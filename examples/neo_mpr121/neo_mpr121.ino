@@ -19,6 +19,7 @@
 // License: GNU GPLv3
 //
 // ---------------------------------------------------------------------------
+#include <MIDIUSB.h>
 #include "FifteenStep.h"
 #include "Adafruit_NeoPixel.h"
 #include "Wire.h"
@@ -310,9 +311,9 @@ void midi(byte channel, byte command, byte arg1, byte arg2) {
   }
 
   // send midi message
-  MIDIEvent event = {command, combined, arg1, arg2};
-  MIDIUSB.write(event);
-  MIDIUSB.flush();
+  midiEventPacket_t event = {command, combined, arg1, arg2};
+  MidiUSB.sendMIDI(event);
+  MidiUSB.flush();
 
 }
 

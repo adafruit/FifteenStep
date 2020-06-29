@@ -1,4 +1,4 @@
-# FifteenStep
+# Adafruit FifteenStep Library [![Build Status](https://github.com/adafruit/FifteenStep/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/FifteenStep/actions)[![Documentation](https://github.com/adafruit/ci-arduino/blob/master/assets/doxygen_badge.svg)](http://adafruit.github.io/FifteenStep/html/index.html)
 
 The goal of this library is to create a general purpose sequencer
 that can be used with anything that can handle MIDI info. The library
