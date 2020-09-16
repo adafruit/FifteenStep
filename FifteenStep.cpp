@@ -347,13 +347,13 @@ void FifteenStep::setStepHandler(StepCallback cb)
 // position, the note will be turned off.
 //
 // @access public
-// @param note on or off message
+// @param channel
 // @param pitch of note
 // @param velocity of note
 // @param position in sequence
 // @return void
 //
-void FifteenStep::setNote(byte channel, byte pitch, byte velocity, byte step)
+void FifteenStep::setNote(byte channel, byte pitch, byte velocity, int step)
 {
 
   // don't save notes if the sequencer isn't running
